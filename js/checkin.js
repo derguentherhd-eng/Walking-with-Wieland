@@ -50,15 +50,23 @@
 
   /* ---------- Starten ---------- */
   $('ci-start').addEventListener('click', function () {
-    WW.setWalkConfig({
+    var cfg = {
       checkin: {
         energy: parseInt($('energy').value, 10),
         stress: parseInt($('stress').value, 10),
         mood:   parseInt($('mood').value,   10)
       },
       guided:       $('route').checked,
-      locationMode: locationMode    // 'gps' | 'home'
-    });
-    window.location.href = 'walk.html';
+      locationMode: locationMode
+    };
+    function go() { WW.setWalkConfig(cfg); window.location.href = 'walk.html'; }
+    // iOS 13+: Kompass-Permission hier erbitten (wir sind schon in einem User-Gesture).
+    // Danach kann walk.html die Permission sofort ohne weiteren Tap verwenden.
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function () { go(); }).catch(go);
+    } else {
+      go();
+    }
   });
 })();

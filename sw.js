@@ -66,13 +66,8 @@ self.addEventListener('fetch', function (e) {
   var req = e.request;
   var url = new URL(req.url);
 
-  // Non-GET und fremde Ursprünge (CDN, Karten-Kacheln, ORS-API) explizit ans Netz
-  // weitergeben. iOS-Bug: einfaches `return` ohne e.respondWith() lässt die Anfrage
-  // fallen statt sie durchzureichen → „Load failed".
-  if (req.method !== 'GET' || url.origin !== self.location.origin) {
-    e.respondWith(fetch(req));
-    return;
-  }
+  // Non-GET und fremde Ursprünge (CDN, Karten-Kacheln, ORS-API) nicht anfassen
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
   // Navigationsanfragen: Netz zuerst, bei Offline auf gecachte Version zurückfallen
   if (req.mode === 'navigate') {

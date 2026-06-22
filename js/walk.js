@@ -490,29 +490,28 @@
     orientReady = true;
   }
 
+  function _waitForOrientClick() {
+    document.addEventListener('click', function () {
+      if (orientReady) return;
+      DeviceOrientationEvent.requestPermission()
+        .then(function (s) { if (s === 'granted') _attachOrientListener(); })
+        .catch(function () {});
+    }, { once: true });
+  }
+
   function initDeviceOrientation() {
     if (!window.DeviceOrientationEvent) return;
     if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
       _attachOrientListener(); return; // Android / Desktop: sofort
     }
-    // iOS 13+: requestPermission() braucht einen nicht-passiven User-Gesture-Handler.
-    // 'touchstart' mit { passive:true } gilt NICHT als User Activation → permission schlägt lautlos fehl.
-    // click ist immer nicht-passiv und zählt als User Activation → zuverlässig.
-    document.addEventListener('click', function askOnce() {
-      if (orientReady) return;
-      DeviceOrientationEvent.requestPermission().then(function (state) {
+    // Sofort versuchen — klappt lautlos wenn Permission bereits in checkin.html erteilt wurde.
+    // Schlägt fehl (kein User-Gesture) → auf ersten Click warten.
+    DeviceOrientationEvent.requestPermission()
+      .then(function (state) {
         if (state === 'granted') _attachOrientListener();
-      }).catch(function () {});
-    }, { once: true });
-  }
-
-  function requestOrientationPermission() {
-    if (orientReady || !window.DeviceOrientationEvent) return;
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission()
-        .then(function (s) { if (s === 'granted') _attachOrientListener(); })
-        .catch(function () {});
-    } else { _attachOrientListener(); }
+        else _waitForOrientClick();
+      })
+      .catch(function () { _waitForOrientClick(); });
   }
 
   // Relative Richtung vom Nutzer zum Waypoint (Kompassbearing → Anzeigetext)
@@ -673,8 +672,11 @@
              distance: (feat.properties.summary || {}).distance || 0 };
   }
 
-  function startGuidedRoute(start, key) {
-    $('instruction-text').textContent = 'Route wird geladen…';
+  function startGuidedRoute(start, key, attempt) {
+    attempt = attempt || 1;
+    $('instruction-text').textContent = attempt === 1
+      ? 'Route wird geladen…'
+      : 'Route wird geladen… (Versuch ' + attempt + ')';
     fetchRoute(start, Math.round(WW.distanceKm(checkin.energy) * 1000), key)
       .then(function (r) {
         route = r;
@@ -687,17 +689,21 @@
           : 'Folge dem Weg.';
         if (curPos) { navSmartAdvance(); navUpdate(); }
       })
-      .catch(function (err) {
-        var msg = err && err.message ? err.message : String(err);
-        $('instruction-text').textContent = 'Fehler: ' + msg;
-        // Retry-Button anzeigen
+      .catch(function () {
+        if (attempt < 4) {
+          // Automatischer Retry: 2s / 4s / 6s Wartezeit
+          setTimeout(function () { startGuidedRoute(start, key, attempt + 1); }, attempt * 2000);
+          return;
+        }
+        // Nach 4 Fehlversuchen: manueller Retry-Button
+        $('instruction-text').textContent = 'Route konnte nicht geladen werden.';
         var retryBtn = document.createElement('button');
         retryBtn.className = 'btn btn-sm';
         retryBtn.textContent = 'Erneut versuchen';
         retryBtn.style.cssText = 'margin-top:10px;display:block';
         retryBtn.addEventListener('click', function () {
           retryBtn.remove();
-          startGuidedRoute(start, key);
+          startGuidedRoute(start, key, 1);
         });
         $('walk-top').appendChild(retryBtn);
       });
@@ -863,6 +869,7 @@
     mapReady = true;
     setTimeout(function () { map.invalidateSize(); }, 50);
   }
+  $('map-close').innerHTML = WW.icon('x');
   $('map-close').addEventListener('click', function () { $('map-panel').hidden = true; });
 
   /* ---------- Start ---------- */
