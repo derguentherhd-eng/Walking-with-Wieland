@@ -472,14 +472,15 @@
     if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
       _attachOrientListener(); return; // Android / Desktop: sofort
     }
-    // iOS 13+: Permission braucht eine Nutzer-Geste → beim ersten Touch anfragen
-    document.addEventListener('touchstart', function askOnce() {
-      document.removeEventListener('touchstart', askOnce);
+    // iOS 13+: requestPermission() braucht einen nicht-passiven User-Gesture-Handler.
+    // 'touchstart' mit { passive:true } gilt NICHT als User Activation → permission schlägt lautlos fehl.
+    // click ist immer nicht-passiv und zählt als User Activation → zuverlässig.
+    document.addEventListener('click', function askOnce() {
       if (orientReady) return;
       DeviceOrientationEvent.requestPermission().then(function (state) {
         if (state === 'granted') _attachOrientListener();
       }).catch(function () {});
-    }, { passive: true });
+    }, { once: true });
   }
 
   function requestOrientationPermission() {
@@ -495,13 +496,13 @@
   function relDirection(brg, heading) {
     var rel = ((brg - heading) % 360 + 360) % 360;
     if (rel < 22.5  || rel >= 337.5) return 'geradeaus';
-    if (rel < 67.5)  return 'leicht rechts';
-    if (rel < 112.5) return 'rechts';
-    if (rel < 157.5) return 'scharf rechts';
+    if (rel < 67.5)  return 'leicht links';
+    if (rel < 112.5) return 'links';
+    if (rel < 157.5) return 'scharf links';
     if (rel < 202.5) return 'umkehren';
-    if (rel < 247.5) return 'scharf links';
-    if (rel < 292.5) return 'links';
-    return 'leicht links';
+    if (rel < 247.5) return 'scharf rechts';
+    if (rel < 292.5) return 'rechts';
+    return 'leicht rechts';
   }
 
   // Kürzester Bogen: verhindert, dass CSS-Transition den langen Weg nimmt (z.B. 355°→5° = +10°, nicht -350°)
@@ -699,6 +700,18 @@
 
   /* ---------- Minimap (kleines Leaflet-Overlay) ---------- */
 
+  function sizeMinimapRotatable() {
+    var parent = document.getElementById('inline-minimap');
+    var el     = document.getElementById('minimap-rotatable');
+    if (!parent || !el) return;
+    var W = parent.offsetWidth, H = parent.offsetHeight;
+    var side = Math.ceil(Math.sqrt(W * W + H * H)) + 2;
+    el.style.width  = side + 'px';
+    el.style.height = side + 'px';
+    el.style.left   = Math.floor((W - side) / 2) + 'px';
+    el.style.top    = Math.floor((H - side) / 2) + 'px';
+  }
+
   function mmInit() {
     if (typeof L === 'undefined' || mmReady) return;
     var center = (navState && navState.waypoints.length)
@@ -714,6 +727,7 @@
       mmLine = L.polyline(navState.coords, { color: '#042615', weight: 3, opacity: .8 }).addTo(minimap);
     }
     mmReady = true;
+    sizeMinimapRotatable();
     setTimeout(function () { minimap.invalidateSize(); mmUpdate(); }, 80);
   }
 

@@ -527,11 +527,13 @@ input[type="range"].range::-moz-range-track {
   background: var(--cream);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 18px 20px;
+  padding: 0 20px;
+  height: 5.5rem;
   display: flex;
   align-items: center;
   gap: 16px;
   width: 100%;
+  box-sizing: border-box;
 }
 .nav-card__text {
   flex: 1;
@@ -606,10 +608,9 @@ input[type="range"].range::-moz-range-track {
   position: relative; box-shadow: var(--shadow);
   margin-top: 2px;
 }
-/* Rotatable wrapper: 25% larger on every side so corners never show when spinning */
+/* Rotatable wrapper: JS sets width/height/left/top to diagonal of parent (always square) */
 #minimap-rotatable {
   position: absolute;
-  inset: -25%;
   transform-origin: center center;
   will-change: transform;
 }
