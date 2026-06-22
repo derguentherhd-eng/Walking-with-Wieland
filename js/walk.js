@@ -9,7 +9,6 @@
   'use strict';
 
   var MOVE_THRESHOLD = 40;   // Meter Bewegung, bevor die nächste Übung kommt
-  var ADVANCE_RADIUS = 25;   // Meter Nähe, um zum nächsten Navigations-Schritt zu springen
   var TEST_INTERVAL = 20000; // Testmodus: alle 20 s eine Übung, ohne Bewegungs-Gate
 
   var $ = function (id) { return document.getElementById(id); };
@@ -42,10 +41,13 @@
   var doneTrophies = [];       // gesammelte Trophäen dieser Runde (keys)
   var tickTimer = null;
 
-  // Navigation
-  var route = null;            // { coords:[[lat,lng]], steps:[{instruction,location,distance}], distance }
-  var stepIndex = 0;
+  // Navigation — waypoint-based, fault-tolerant
+  var navState = null;         // { waypoints, wpIndex, deviceHeading, coords }
+  var route = null;            // kept for fullscreen map compat
   var map = null, routeLine = null, userMarker = null, mapReady = false;
+  // Minimap
+  var minimap = null, mmUserMarker = null, mmWpMarker = null, mmLine = null;
+  var mmReady = false, mmVisible = false;
 
   /* ---------- Geolocation ---------- */
   function startTracking() {
@@ -61,8 +63,11 @@
     curPos = { lat: lat, lng: lng };
     if (lastPos) movedSinceLast += WW.haversine(lastPos.lat, lastPos.lng, lat, lng);
     lastPos = { lat: lat, lng: lng };
+    if (p.coords.heading != null && !isNaN(p.coords.heading) && navState) {
+      navState.deviceHeading = p.coords.heading;
+    }
     if (userMarker && map) userMarker.setLatLng([lat, lng]);
-    if (guided && route) maybeAdvanceStep();
+    if (navState) { navSmartAdvance(); navUpdate(); }
   }
   function onGeoErr() { /* still: wir fallen automatisch auf Zeit zurück */ }
 
@@ -395,28 +400,122 @@
     showExercise(ex);
   });
 
-  /* ---------- Geführte Route (OpenRouteService) ---------- */
+  /* ---------- Navigation: Kompass-Waypoint-System ---------- */
 
-  // ORS step type -> Rotation des Aufwärts-Pfeils in Grad
-  var ARROW_DEG = { 0: 270, 1: 90, 2: 250, 3: 110, 4: 315, 5: 45,
-                    6: 0, 7: 45, 8: 315, 10: 180, 11: 0, 12: 0 };
+  function navBearing(lat1, lng1, lat2, lng2) {
+    var D2R = Math.PI / 180;
+    var f1 = lat1 * D2R, f2 = lat2 * D2R, dl = (lng2 - lng1) * D2R;
+    var y = Math.sin(dl) * Math.cos(f2);
+    var x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
 
-  function setInstruction(txt, type) {
-    $('instruction-text').textContent = txt;
-    var arrow = $('nav-arrow');
-    if (arrow) {
-      var deg = (type !== undefined && ARROW_DEG[type] !== undefined) ? ARROW_DEG[type] : 0;
-      arrow.style.transform = 'rotate(' + deg + 'deg)';
+  function navDistText(d) {
+    if (d < 50)   return Math.round(d) + ' m';
+    if (d < 1000) return (Math.round(d / 10) * 10) + ' m';
+    return (d / 1000).toFixed(1).replace('.', ',') + ' km';
+  }
+
+  // Build a waypoint list: ORS decision points + every ~350 m along the route
+  function buildWaypoints(r) {
+    var coords = r.coords, rawSteps = r.rawSteps || [], WP_DIST = 350;
+    var wps = [], dist = 0;
+    // Map coord-array index → raw ORS step
+    var stepAt = {};
+    rawSteps.forEach(function (st) {
+      var ci = (st.way_points && st.way_points[0] != null) ? st.way_points[0] : 0;
+      stepAt[ci] = st;
+    });
+    for (var i = 0; i < coords.length; i++) {
+      if (i > 0) dist += WW.haversine(coords[i-1][0], coords[i-1][1], coords[i][0], coords[i][1]);
+      var st = stepAt[i];
+      if (i === 0 || st || dist >= WP_DIST) {
+        wps.push({ lat: coords[i][0], lng: coords[i][1],
+          instruction: st ? st.instruction : null,
+          type:        st ? st.type        : null,
+          name:        st ? (st.name || '') : '',
+          isStep:      !!st });
+        dist = 0;
+      }
+    }
+    // Always include destination
+    if (coords.length) {
+      var lc = coords[coords.length - 1], lw = wps[wps.length - 1];
+      if (!lw || WW.haversine(lw.lat, lw.lng, lc[0], lc[1]) > 5) {
+        wps.push({ lat: lc[0], lng: lc[1], instruction: 'Ziel erreicht!',
+          type: 11, name: '', isStep: true });
+      }
+    }
+    return wps;
+  }
+
+  // Skip waypoints that the user has already passed
+  function navSmartAdvance() {
+    if (!navState || !curPos) return;
+    var wps = navState.waypoints, changed = true;
+    while (changed && navState.wpIndex < wps.length) {
+      changed = false;
+      var wp = wps[navState.wpIndex];
+      var d  = WW.haversine(curPos.lat, curPos.lng, wp.lat, wp.lng);
+      if (d < 30) { navState.wpIndex++; changed = true; continue; }
+      // Next closer than current → user passed this one
+      if (navState.wpIndex + 1 < wps.length) {
+        var dn = WW.haversine(curPos.lat, curPos.lng,
+          wps[navState.wpIndex + 1].lat, wps[navState.wpIndex + 1].lng);
+        if (dn < d * 0.72) { navState.wpIndex++; changed = true; }
+      }
     }
   }
 
-  function fetchRoute(home, distanceMeters, key) {
+  // Compass arrow + text hint — called every GPS update
+  function navUpdate() {
+    if (!navState || !curPos) return;
+    var wps = navState.waypoints, idx = navState.wpIndex;
+    if (idx >= wps.length) {
+      $('instruction-text').textContent = 'Ziel erreicht!';
+      $('nav-arrow').style.transform = 'rotate(0deg)';
+      mmUpdate(); return;
+    }
+    var wp   = wps[idx];
+    var dist = WW.haversine(curPos.lat, curPos.lng, wp.lat, wp.lng);
+    var brg  = navBearing(curPos.lat, curPos.lng, wp.lat, wp.lng);
+
+    // Compass: rotate arrow relative to travel direction if GPS heading available
+    var arrowDeg = (navState.deviceHeading != null)
+      ? (brg - navState.deviceHeading + 360) % 360
+      : brg;
+    $('nav-arrow').style.transform = 'rotate(' + arrowDeg + 'deg)';
+
+    // Text: immediate instruction when close to a decision point, else distance
+    var txt;
+    if (wp.instruction && dist < 80) {
+      txt = wp.instruction;
+    } else if (wp.instruction) {
+      txt = 'In ' + navDistText(dist) + ' – ' + wp.instruction;
+    } else {
+      txt = navDistText(dist) + ' geradeaus';
+      // Look-ahead: show next turn if within 300 m of a step waypoint
+      for (var j = idx + 1; j < Math.min(idx + 6, wps.length); j++) {
+        if (wps[j].isStep && wps[j].instruction && wps[j].type !== 11 && wps[j].type !== 12) {
+          if (dist < 300) txt += ' – dann ' + wps[j].instruction;
+          break;
+        }
+      }
+    }
+    $('instruction-text').textContent = txt;
+    mmUpdate();
+  }
+
+  /* ---------- ORS: Route laden & parsen ---------- */
+
+  function fetchRoute(start, distanceMeters, key) {
     var url = 'https://api.openrouteservice.org/v2/directions/foot-walking/geojson';
     var body = {
-      coordinates: [[home.lng, home.lat]],
+      coordinates: [[start.lng, start.lat]],
       instructions: true,
       language: 'de',
-      options: { round_trip: { length: distanceMeters, points: 5, seed: Math.floor(Math.random() * 1e6) } }
+      options: { round_trip: { length: distanceMeters, points: 5,
+                               seed: Math.floor(Math.random() * 1e6) } }
     };
     return fetch(url, {
       method: 'POST',
@@ -432,85 +531,134 @@
     var feat = geo.features && geo.features[0];
     if (!feat) throw new Error('keine Route');
     var coords = feat.geometry.coordinates.map(function (c) { return [c[1], c[0]]; });
-    var steps = [];
+    var steps = [], rawSteps = [];
     var seg = feat.properties.segments && feat.properties.segments[0];
     if (seg && seg.steps) {
       seg.steps.forEach(function (st) {
-        var wp = (st.way_points && st.way_points[0]) || 0;
-        steps.push({
-          instruction: st.instruction,
-          distance: st.distance,
-          location: coords[wp] || coords[0],
-          type: st.type  // Richtungstyp für Pfeil-Rotation
-        });
+        var wi = (st.way_points && st.way_points[0] != null) ? st.way_points[0] : 0;
+        steps.push({ instruction: st.instruction, distance: st.distance,
+          location: coords[wi] || coords[0], type: st.type, name: st.name || '' });
+        rawSteps.push({ instruction: st.instruction, distance: st.distance,
+          type: st.type, name: st.name || '', way_points: st.way_points });
       });
     }
-    return { coords: coords, steps: steps, distance: (feat.properties.summary || {}).distance || 0 };
+    return { coords: coords, steps: steps, rawSteps: rawSteps,
+             distance: (feat.properties.summary || {}).distance || 0 };
   }
 
-  function maybeAdvanceStep() {
-    if (!curPos || !route || !route.steps.length) return;
-    var next = route.steps[stepIndex];
-    if (!next) return;
-    var d = WW.haversine(curPos.lat, curPos.lng, next.location[0], next.location[1]);
-    if (d <= ADVANCE_RADIUS && stepIndex < route.steps.length - 1) {
-      stepIndex += 1;
-      var step = route.steps[stepIndex];
-      setInstruction(step.instruction, step.type);
-    }
-  }
-
-  function startGuidedRoute(home, key) {
-    setInstruction('Route wird geladen…', 6);
-    fetchRoute(home, Math.round(WW.distanceKm(checkin.energy) * 1000), key)
+  function startGuidedRoute(start, key) {
+    $('instruction-text').textContent = 'Route wird geladen…';
+    fetchRoute(start, Math.round(WW.distanceKm(checkin.energy) * 1000), key)
       .then(function (r) {
-        route = r; stepIndex = 0;
-        if (r.steps.length) setInstruction(r.steps[0].instruction, r.steps[0].type);
-        else                 setInstruction('Folge dem Weg.', 6);
+        route = r;
+        navState = { waypoints: buildWaypoints(r), wpIndex: 1,
+                     deviceHeading: null, coords: r.coords };
+        if (navState.waypoints.length <= 1) navState.wpIndex = 0;
+        var wp0 = navState.waypoints[navState.wpIndex];
+        $('instruction-text').textContent = wp0
+          ? (wp0.instruction || 'Folge dem Weg.')
+          : 'Folge dem Weg.';
+        if (curPos) { navSmartAdvance(); navUpdate(); }
       })
       .catch(function () {
-        setInstruction('Route konnte nicht geladen werden. Du läufst frei weiter.', 6);
+        $('instruction-text').textContent =
+          'Route konnte nicht geladen werden. Du läufst frei weiter.';
       });
   }
 
   function initGuided() {
     var key = settings.orsKey;
-    if (!key) return;   // kein Schlüssel → freier Spaziergang, walk-top bleibt versteckt
-
+    if (!key) return;
     $('walk-top').hidden = false;
     $('walk-hint').hidden = true;
     $('walk-sub').hidden  = true;
     $('nav-arrow').innerHTML  = WW.icon('arrowup');
     $('map-toggle').innerHTML = WW.icon('dots');
-
     var home = settings.home;
     var useHome = locationMode === 'home' && home && typeof home.lat === 'number';
-
     if (useHome) {
-      // Nutzer hat explizit Heimat-Standort gewählt
       startGuidedRoute(home, key);
     } else if (navigator.geolocation) {
-      // GPS-Standort als Start (Standard oder explizit gewählt)
-      setInstruction('Standort wird ermittelt …', 6);
+      $('instruction-text').textContent = 'Standort wird ermittelt …';
       navigator.geolocation.getCurrentPosition(
         function (pos) {
           startGuidedRoute({ lat: pos.coords.latitude, lng: pos.coords.longitude }, key);
         },
         function () {
-          // GPS-Fehler: falls Heimat gespeichert, Fallback darauf
           if (home && typeof home.lat === 'number') {
-            setInstruction('GPS nicht verfügbar – starte vom Heimat-Standort.', 6);
             startGuidedRoute(home, key);
           } else {
-            setInstruction('Standort konnte nicht ermittelt werden. Du läufst frei weiter.', 6);
+            $('instruction-text').textContent =
+              'Standort konnte nicht ermittelt werden. Du läufst frei weiter.';
           }
         },
         { enableHighAccuracy: true, timeout: 15000 }
       );
     } else {
-      setInstruction('GPS nicht verfügbar. Heimat-Standort in den Einstellungen speichern.', 6);
+      $('instruction-text').textContent = 'GPS nicht verfügbar.';
     }
   }
+
+  /* ---------- Minimap (kleines Leaflet-Overlay) ---------- */
+
+  function mmInit() {
+    if (typeof L === 'undefined' || mmReady) return;
+    var center = (navState && navState.waypoints.length)
+      ? [navState.waypoints[0].lat, navState.waypoints[0].lng]
+      : (settings.home ? [settings.home.lat, settings.home.lng] : [48.4, 9.99]);
+    minimap = L.map('minimap-container', {
+      zoomControl: false, attributionControl: false,
+      dragging: false, scrollWheelZoom: false,
+      doubleClickZoom: false, boxZoom: false, keyboard: false
+    }).setView(center, 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(minimap);
+    if (navState && navState.coords && navState.coords.length) {
+      mmLine = L.polyline(navState.coords, { color: '#042615', weight: 3, opacity: .8 }).addTo(minimap);
+    }
+    mmReady = true;
+    setTimeout(function () { minimap.invalidateSize(); mmUpdate(); }, 80);
+  }
+
+  function mmUpdate() {
+    if (!mmReady || !mmVisible || !minimap) return;
+    if (curPos) {
+      var ll = [curPos.lat, curPos.lng];
+      if (mmUserMarker) mmUserMarker.setLatLng(ll);
+      else mmUserMarker = L.circleMarker(ll, { radius: 7, color: '#fff',
+        fillColor: '#93C3D9', fillOpacity: 1, weight: 2 }).addTo(minimap);
+      minimap.setView(ll, 17, { animate: true });
+    }
+    if (navState && navState.wpIndex < navState.waypoints.length) {
+      var wp = navState.waypoints[navState.wpIndex];
+      var wll = [wp.lat, wp.lng];
+      if (mmWpMarker) mmWpMarker.setLatLng(wll);
+      else mmWpMarker = L.circleMarker(wll, { radius: 6, color: '#042615',
+        fillColor: '#A6BD7B', fillOpacity: 1, weight: 2 }).addTo(minimap);
+    }
+  }
+
+  function mmOpen() {
+    $('minimap-overlay').hidden = false;
+    mmVisible = true;
+    if (!mmReady) setTimeout(mmInit, 80);
+    else setTimeout(function () { minimap.invalidateSize(); mmUpdate(); }, 50);
+  }
+  function mmClose() { $('minimap-overlay').hidden = true; mmVisible = false; }
+
+  /* ---------- Karten-Menü ---------- */
+  $('map-toggle').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var p = $('map-menu-popup'); p.hidden = !p.hidden;
+  });
+  document.addEventListener('click', function () { $('map-menu-popup').hidden = true; });
+  $('menu-minimap').addEventListener('click', function () {
+    $('map-menu-popup').hidden = true;
+    if (mmVisible) mmClose(); else mmOpen();
+  });
+  $('menu-fullmap').addEventListener('click', function () {
+    $('map-menu-popup').hidden = true; openMap();
+  });
+  $('minimap-close').addEventListener('click', mmClose);
 
   /* ---------- Karten-Panel (Leaflet) ---------- */
   function openMap() {
@@ -523,14 +671,15 @@
       $('map').innerHTML = '<p class="hint" style="padding:16px">Karte konnte nicht geladen werden (keine Verbindung).</p>';
       return;
     }
-    var center = (route && route.coords[0]) || (settings.home ? [settings.home.lat, settings.home.lng] : [48.4, 9.99]);
+    var rcoords = (navState && navState.coords) || (route && route.coords);
+    var center  = (rcoords && rcoords[0]) || (settings.home ? [settings.home.lat, settings.home.lng] : [48.4, 9.99]);
     map = L.map('map').setView(center, 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '© OpenStreetMap-Mitwirkende'
     }).addTo(map);
-    if (route && route.coords.length) {
-      routeLine = L.polyline(route.coords, { color: '#042615', weight: 5, opacity: .85 }).addTo(map);
-      L.circleMarker(route.coords[0], { radius: 7, color: '#042615', fillColor: '#A6BD7B', fillOpacity: 1 })
+    if (rcoords && rcoords.length) {
+      routeLine = L.polyline(rcoords, { color: '#042615', weight: 5, opacity: .85 }).addTo(map);
+      L.circleMarker(rcoords[0], { radius: 7, color: '#042615', fillColor: '#A6BD7B', fillOpacity: 1 })
         .addTo(map).bindPopup('Start &amp; Ziel');
       map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
     }
@@ -538,7 +687,6 @@
     mapReady = true;
     setTimeout(function () { map.invalidateSize(); }, 50);
   }
-  $('map-toggle').addEventListener('click', openMap);
   $('map-close').addEventListener('click', function () { $('map-panel').hidden = true; });
 
   /* ---------- Start ---------- */

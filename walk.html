@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="Wieland">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=4">
   <!-- Leaflet (nur für die geführte Strecke; lädt im Browser, OpenStreetMap-Karten) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -29,6 +29,18 @@
       </div>
       <button class="icon-btn icon-btn--bare" id="map-toggle" type="button"
               aria-label="Karte anzeigen" style="align-self:flex-start"></button>
+    </div>
+
+    <!-- Karten-Menü Popup -->
+    <div class="map-menu-popup" id="map-menu-popup" hidden>
+      <button class="map-menu-popup__btn" id="menu-minimap" type="button">Minimap</button>
+      <button class="map-menu-popup__btn" id="menu-fullmap" type="button">Vollbild-Karte</button>
+    </div>
+
+    <!-- Minimap Overlay -->
+    <div class="minimap-overlay" id="minimap-overlay" hidden>
+      <div id="minimap-container"></div>
+      <button class="minimap-close" id="minimap-close" type="button" aria-label="Minimap schließen">&times;</button>
     </div>
 
     <div class="spacer"></div>
@@ -84,9 +96,9 @@
     <div id="map"></div>
   </div>
 
-  <script src="js/exercises.js?v=3"></script>
-  <script src="js/trophies.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
-  <script src="js/walk.js?v=3"></script>
+  <script src="js/exercises.js?v=4"></script>
+  <script src="js/trophies.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
+  <script src="js/walk.js?v=4"></script>
 </body>
 </html>
