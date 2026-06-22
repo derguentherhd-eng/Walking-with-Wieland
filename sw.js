@@ -3,7 +3,7 @@
    werden absichtlich NICHT gecacht und laufen direkt übers Netz. */
 'use strict';
 
-var CACHE = 'ww-shell-v2';
+var CACHE = 'ww-shell-v3';
 var SHELL = [
   './',
   'index.html',
@@ -64,11 +64,15 @@ self.addEventListener('notificationclick', function (e) {
 
 self.addEventListener('fetch', function (e) {
   var req = e.request;
-  if (req.method !== 'GET') return;
-
   var url = new URL(req.url);
-  // Fremde Ursprünge (CDN, Karten-Kacheln, ORS-API) unangetastet lassen
-  if (url.origin !== self.location.origin) return;
+
+  // Non-GET und fremde Ursprünge (CDN, Karten-Kacheln, ORS-API) explizit ans Netz
+  // weitergeben. iOS-Bug: einfaches `return` ohne e.respondWith() lässt die Anfrage
+  // fallen statt sie durchzureichen → „Load failed".
+  if (req.method !== 'GET' || url.origin !== self.location.origin) {
+    e.respondWith(fetch(req));
+    return;
+  }
 
   // Navigationsanfragen: Netz zuerst, bei Offline auf gecachte Version zurückfallen
   if (req.mode === 'navigate') {
