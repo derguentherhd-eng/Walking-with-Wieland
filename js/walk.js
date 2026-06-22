@@ -48,9 +48,10 @@
   // Minimap
   var minimap = null, mmUserMarker = null, mmWpMarker = null, mmLine = null;
   var mmReady = false, mmVisible = false;
-  // Device orientation (Kompass) + Smoothing
+  // Device orientation (Kompass) + 2-Sekunden-Fenstermittelung
   var orientReady = false;
-  var smSin = 0, smCos = 0, smInit = false, lastOrientMs = 0;
+  var headingBuf = [];   // [{t, s, c}]  — Ringspeicher der letzten 2 Sek.
+  var lastOrientMs = 0;
 
   /* ---------- Geolocation ---------- */
   function startTracking() {
@@ -66,9 +67,6 @@
     curPos = { lat: lat, lng: lng };
     if (lastPos) movedSinceLast += WW.haversine(lastPos.lat, lastPos.lng, lat, lng);
     lastPos = { lat: lat, lng: lng };
-    if (p.coords.heading != null && !isNaN(p.coords.heading) && navState) {
-      navState.deviceHeading = p.coords.heading;
-    }
     if (userMarker && map) userMarker.setLatLng([lat, lng]);
     if (navState) { navSmartAdvance(); navUpdate(); }
   }
@@ -405,23 +403,41 @@
 
   /* ---------- Gerätekompass (DeviceOrientationEvent) ---------- */
 
-  // Kreisförmiger EMA: mittelt sin/cos-Komponenten → kein 0°/360°-Sprung
-  // ALPHA = Gewicht für jeden neuen Messwert (0.08 = sehr glatt, 0.2 = reaktiver)
-  var SMOOTH_ALPHA = 0.10;
-  var OUTLIER_DEG  = 80;   // Messungen mit >80° Abweichung bekommen stark reduzierten Einfluss
+  var HEADING_WIN_MS = 2000;   // 2-Sekunden-Fenster
+  var OUTLIER_MAX    = 45;     // Messungen >45° vom Schätzwert werden ignoriert
 
-  function smoothHeading(rawDeg) {
-    var rad = rawDeg * Math.PI / 180;
-    var s = Math.sin(rad), c = Math.cos(rad);
-    if (!smInit) { smSin = s; smCos = c; smInit = true; return rawDeg; }
-    // Abweichung vom aktuellen Schätzwert berechnen
-    var est = (Math.atan2(smSin, smCos) * 180 / Math.PI + 360) % 360;
-    var diff = Math.abs(((rawDeg - est + 180 + 360) % 360) - 180);
-    // Ausreißer: starke Abweichung → sehr kleines Gewicht (langsam angleichen statt springen)
-    var a = diff > OUTLIER_DEG ? SMOOTH_ALPHA * 0.15 : SMOOTH_ALPHA;
-    smSin = a * s + (1 - a) * smSin;
-    smCos = a * c + (1 - a) * smCos;
-    return (Math.atan2(smSin, smCos) * 180 / Math.PI + 360) % 360;
+  // 2-Sekunden-Fenstermittelung mit Ausreißerfilter + linearer Gewichtung (neu > alt)
+  function windowedHeading(rawDeg) {
+    var now = Date.now();
+    var r = rawDeg * Math.PI / 180;
+    headingBuf.push({ t: now, s: Math.sin(r), c: Math.cos(r) });
+
+    // Alte Einträge entfernen
+    var cut = now - HEADING_WIN_MS;
+    var i = 0; while (i < headingBuf.length && headingBuf[i].t < cut) i++;
+    if (i) headingBuf.splice(0, i);
+
+    if (headingBuf.length < 2) return rawDeg;
+
+    // Schritt 1: Grober Kreismittelwert als Ausreißerreferenz
+    var rs = 0, rc = 0;
+    for (var j = 0; j < headingBuf.length; j++) { rs += headingBuf[j].s; rc += headingBuf[j].c; }
+    var roughDeg = (Math.atan2(rs, rc) * 180 / Math.PI + 360) % 360;
+
+    // Schritt 2: Gewichteter Kreismittelwert ohne Ausreißer
+    var wS = 0, wC = 0, wSum = 0;
+    var newest = headingBuf[headingBuf.length - 1].t;
+    var span   = Math.max(newest - headingBuf[0].t, 1);
+    for (var j = 0; j < headingBuf.length; j++) {
+      var deg = (Math.atan2(headingBuf[j].s, headingBuf[j].c) * 180 / Math.PI + 360) % 360;
+      var diff = Math.abs(((deg - roughDeg + 180 + 360) % 360) - 180);
+      if (diff > OUTLIER_MAX) continue;                         // Ausreißer überspringen
+      var age = newest - headingBuf[j].t;
+      var w   = 2.0 - 1.5 * (age / span);                      // 0.5 (alt) … 2.0 (neu)
+      wS += w * headingBuf[j].s; wC += w * headingBuf[j].c; wSum += w;
+    }
+    if (wSum < 0.01) return roughDeg;
+    return (Math.atan2(wS / wSum, wC / wSum) * 180 / Math.PI + 360) % 360;
   }
 
   function onOrientation(e) {
@@ -432,7 +448,7 @@
       raw = (360 - e.alpha + 360) % 360;
     } else { return; }
 
-    var heading = smoothHeading(raw);
+    var heading = windowedHeading(raw);
     if (navState) navState.deviceHeading = heading;
 
     // DOM-Updates drosseln: max. 10× pro Sekunde
@@ -443,28 +459,33 @@
     mmUpdateRotation();
   }
 
+  function _attachOrientListener() {
+    window.addEventListener('deviceorientation', onOrientation, { passive: true });
+    orientReady = true;
+  }
+
   function initDeviceOrientation() {
     if (!window.DeviceOrientationEvent) return;
     if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
-      window.addEventListener('deviceorientation', onOrientation, { passive: true });
-      orientReady = true;
+      _attachOrientListener(); return; // Android / Desktop: sofort
     }
-    // iOS 13+: Berechtigung erst bei Nutzer-Geste (Tap auf Map-Button)
+    // iOS 13+: Permission braucht eine Nutzer-Geste → beim ersten Touch anfragen
+    document.addEventListener('touchstart', function askOnce() {
+      document.removeEventListener('touchstart', askOnce);
+      if (orientReady) return;
+      DeviceOrientationEvent.requestPermission().then(function (state) {
+        if (state === 'granted') _attachOrientListener();
+      }).catch(function () {});
+    }, { passive: true });
   }
 
   function requestOrientationPermission() {
     if (orientReady || !window.DeviceOrientationEvent) return;
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission().then(function (state) {
-        if (state === 'granted') {
-          window.addEventListener('deviceorientation', onOrientation, { passive: true });
-          orientReady = true;
-        }
-      }).catch(function () {});
-    } else {
-      window.addEventListener('deviceorientation', onOrientation, { passive: true });
-      orientReady = true;
-    }
+      DeviceOrientationEvent.requestPermission()
+        .then(function (s) { if (s === 'granted') _attachOrientListener(); })
+        .catch(function () {});
+    } else { _attachOrientListener(); }
   }
 
   // Relative Richtung vom Nutzer zum Waypoint (Kompassbearing → Anzeigetext)
