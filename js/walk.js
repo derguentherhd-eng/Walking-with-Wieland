@@ -496,13 +496,13 @@
   function relDirection(brg, heading) {
     var rel = ((brg - heading) % 360 + 360) % 360;
     if (rel < 22.5  || rel >= 337.5) return 'geradeaus';
-    if (rel < 67.5)  return 'leicht links';
-    if (rel < 112.5) return 'links';
-    if (rel < 157.5) return 'scharf links';
+    if (rel < 67.5)  return 'leicht rechts';
+    if (rel < 112.5) return 'rechts';
+    if (rel < 157.5) return 'scharf rechts';
     if (rel < 202.5) return 'umkehren';
-    if (rel < 247.5) return 'scharf rechts';
-    if (rel < 292.5) return 'rechts';
-    return 'leicht rechts';
+    if (rel < 247.5) return 'scharf links';
+    if (rel < 292.5) return 'links';
+    return 'leicht links';
   }
 
   // Kürzester Bogen: verhindert, dass CSS-Transition den langen Weg nimmt (z.B. 355°→5° = +10°, nicht -350°)
