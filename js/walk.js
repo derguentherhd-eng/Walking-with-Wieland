@@ -659,9 +659,9 @@
           : 'Folge dem Weg.';
         if (curPos) { navSmartAdvance(); navUpdate(); }
       })
-      .catch(function () {
+      .catch(function (err) {
         $('instruction-text').textContent =
-          'Route konnte nicht geladen werden. Du läufst frei weiter.';
+          'Route konnte nicht geladen werden. Du läufst frei weiter. (' + (err && err.message ? err.message : err) + ')';
       });
   }
 
