@@ -52,6 +52,8 @@
   var orientReady = false;
   var headingBuf = [];   // [{t, s, c}]  — Ringspeicher der letzten 2 Sek.
   var lastOrientMs = 0;
+  // Kontinuierliche Winkel für CSS-Transition (kein 360°-Überlauf-Sprung)
+  var arrowDisplayAngle = 0, mapDisplayAngle = 0;
 
   /* ---------- Geolocation ---------- */
   function startTracking() {
@@ -501,6 +503,16 @@
     return 'leicht links';
   }
 
+  // Kürzester Bogen: verhindert, dass CSS-Transition den langen Weg nimmt (z.B. 355°→5° = +10°, nicht -350°)
+  function continuousAngle(prev, next) {
+    var pMod = ((prev % 360) + 360) % 360;
+    var nMod = ((next % 360) + 360) % 360;
+    var diff = nMod - pMod;
+    if (diff >  180) diff -= 360;
+    if (diff < -180) diff += 360;
+    return prev + diff;
+  }
+
   /* ---------- Navigation: Kompass-Waypoint-System ---------- */
 
   function navBearing(lat1, lng1, lat2, lng2) {
@@ -574,7 +586,8 @@
     var wps = navState.waypoints, wi = navState.wpIndex;
     if (wi >= wps.length) {
       $('instruction-text').textContent = 'Ziel erreicht!';
-      $('nav-arrow').style.transform = 'rotate(0deg)';
+      arrowDisplayAngle = continuousAngle(arrowDisplayAngle, 0);
+      $('nav-arrow').style.transform = 'rotate(' + arrowDisplayAngle + 'deg)';
       mmUpdate(); mmUpdateRotation(); return;
     }
     var wp   = wps[wi];
@@ -585,7 +598,8 @@
     var arrowDeg = (navState.deviceHeading != null)
       ? (brg - navState.deviceHeading + 360) % 360
       : brg;
-    $('nav-arrow').style.transform = 'rotate(' + arrowDeg + 'deg)';
+    arrowDisplayAngle = continuousAngle(arrowDisplayAngle, arrowDeg);
+    $('nav-arrow').style.transform = 'rotate(' + arrowDisplayAngle + 'deg)';
 
     // Text: relative Richtung wenn Kompass verfügbar, sonst ORS-Anweisung
     var dirTxt;
@@ -737,7 +751,10 @@
   function mmUpdateRotation() {
     if (!mmReady || !navState || navState.deviceHeading == null) return;
     var el = document.getElementById('minimap-rotatable');
-    if (el) el.style.transform = 'rotate(' + (-navState.deviceHeading) + 'deg)';
+    if (!el) return;
+    var mapDeg = (360 - navState.deviceHeading % 360) % 360;
+    mapDisplayAngle = continuousAngle(mapDisplayAngle, mapDeg);
+    el.style.transform = 'rotate(' + mapDisplayAngle + 'deg)';
   }
 
   function mmOpen() {
