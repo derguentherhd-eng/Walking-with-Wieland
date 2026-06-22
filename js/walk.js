@@ -55,6 +55,27 @@
   // Kontinuierliche Winkel für rAF-Loop (kein 360°-Überlauf-Sprung)
   var arrowDisplayAngle = 0, mapDisplayAngle = 0;
   var targetHeading = null;  // aktuell geglätteter Kompasswert (wird in rAF gelesen)
+  // Audio-Feedback
+  var sndWaypoint = new Audio('assets/Audio%20Waypoint.mp3');
+  var sndExercise = new Audio('assets/Audio%20%C3%9Cbung.mp3');
+  function playSound(a) {
+    try { a.currentTime = 0; a.play().catch(function () {}); } catch (e) {}
+  }
+
+  // Notifications (iOS leitet an Apple Watch weiter)
+  function requestNotifPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(function () {});
+    }
+  }
+  function sendNotif(title, body) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    navigator.serviceWorker.ready.then(function (reg) {
+      reg.showNotification(title, { body: body, silent: true });
+    }).catch(function () {
+      try { new Notification(title, { body: body }); } catch (e) {}
+    });
+  }
 
   /* ---------- Geolocation ---------- */
   function startTracking() {
@@ -149,6 +170,8 @@
   }
 
   function showExercise(ex) {
+    playSound(sndExercise);
+    sendNotif('Zeit für eine Übung!', ex.text || ex.header || '');
     mode = 'exercise';
     var wt = $('walk-top');
     navWasVisible = !wt.hidden;
@@ -568,6 +591,7 @@
   function navSmartAdvance() {
     if (!navState || !curPos) return;
     var wps = navState.waypoints, changed = true;
+    var prevIdx = navState.wpIndex;
     while (changed && navState.wpIndex < wps.length) {
       changed = false;
       var wp = wps[navState.wpIndex];
@@ -579,6 +603,10 @@
           wps[navState.wpIndex + 1].lat, wps[navState.wpIndex + 1].lng);
         if (dn < d * 0.72) { navState.wpIndex++; changed = true; }
       }
+    }
+    if (navState.wpIndex > prevIdx) {
+      playSound(sndWaypoint);
+      sendNotif('Wegpunkt erreicht', 'Weiter geht\'s!');
     }
   }
 
@@ -829,7 +857,14 @@
 
   /* ---------- Start ---------- */
   $('sos').innerHTML = 'Notruf';
+  requestNotifPermission();
   initDeviceOrientation();
+  // iOS sperrt Audio bis zur ersten Nutzer-Interaktion — beim ersten Touch entsperren
+  document.addEventListener('touchstart', function () {
+    [sndWaypoint, sndExercise].forEach(function (a) {
+      a.play().then(function () { a.pause(); a.currentTime = 0; }).catch(function () {});
+    });
+  }, { once: true, passive: true });
   requestAnimationFrame(compassRenderLoop);
   if (guided) initGuided();
   startTracking();

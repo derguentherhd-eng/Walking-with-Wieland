@@ -27,7 +27,9 @@ var SHELL = [
   'assets/hintergrund.jpg',
   'assets/icon-180.png',
   'assets/icon-192.png',
-  'assets/icon-512.png'
+  'assets/icon-512.png',
+  'assets/Audio%20Waypoint.mp3',
+  'assets/Audio%20%C3%9Cbung.mp3'
 ];
 
 self.addEventListener('install', function (e) {
@@ -48,6 +50,16 @@ self.addEventListener('activate', function (e) {
       }));
     }).then(function () { return self.clients.claim(); })
   );
+});
+
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  e.waitUntil(clients.matchAll({ type: 'window' }).then(function (wins) {
+    for (var i = 0; i < wins.length; i++) {
+      if (wins[i].url.indexOf('walk.html') !== -1) { wins[i].focus(); return; }
+    }
+    return clients.openWindow('walk.html');
+  }));
 });
 
 self.addEventListener('fetch', function (e) {
