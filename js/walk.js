@@ -48,8 +48,9 @@
   // Minimap
   var minimap = null, mmUserMarker = null, mmWpMarker = null, mmLine = null;
   var mmReady = false, mmVisible = false;
-  // Device orientation (Kompass)
+  // Device orientation (Kompass) + Smoothing
   var orientReady = false;
+  var smSin = 0, smCos = 0, smInit = false, lastOrientMs = 0;
 
   /* ---------- Geolocation ---------- */
   function startTracking() {
@@ -404,14 +405,40 @@
 
   /* ---------- Gerätekompass (DeviceOrientationEvent) ---------- */
 
+  // Kreisförmiger EMA: mittelt sin/cos-Komponenten → kein 0°/360°-Sprung
+  // ALPHA = Gewicht für jeden neuen Messwert (0.08 = sehr glatt, 0.2 = reaktiver)
+  var SMOOTH_ALPHA = 0.10;
+  var OUTLIER_DEG  = 80;   // Messungen mit >80° Abweichung bekommen stark reduzierten Einfluss
+
+  function smoothHeading(rawDeg) {
+    var rad = rawDeg * Math.PI / 180;
+    var s = Math.sin(rad), c = Math.cos(rad);
+    if (!smInit) { smSin = s; smCos = c; smInit = true; return rawDeg; }
+    // Abweichung vom aktuellen Schätzwert berechnen
+    var est = (Math.atan2(smSin, smCos) * 180 / Math.PI + 360) % 360;
+    var diff = Math.abs(((rawDeg - est + 180 + 360) % 360) - 180);
+    // Ausreißer: starke Abweichung → sehr kleines Gewicht (langsam angleichen statt springen)
+    var a = diff > OUTLIER_DEG ? SMOOTH_ALPHA * 0.15 : SMOOTH_ALPHA;
+    smSin = a * s + (1 - a) * smSin;
+    smCos = a * c + (1 - a) * smCos;
+    return (Math.atan2(smSin, smCos) * 180 / Math.PI + 360) % 360;
+  }
+
   function onOrientation(e) {
-    var heading;
+    var raw;
     if (e.webkitCompassHeading != null) {
-      heading = e.webkitCompassHeading;                // iOS: absolut von magn. Nord
+      raw = e.webkitCompassHeading;
     } else if (e.alpha != null) {
-      heading = (360 - e.alpha + 360) % 360;           // Android
+      raw = (360 - e.alpha + 360) % 360;
     } else { return; }
+
+    var heading = smoothHeading(raw);
     if (navState) navState.deviceHeading = heading;
+
+    // DOM-Updates drosseln: max. 10× pro Sekunde
+    var now = Date.now();
+    if (now - lastOrientMs < 100) return;
+    lastOrientMs = now;
     navUpdate();
     mmUpdateRotation();
   }
@@ -685,11 +712,11 @@
     }
   }
 
-  // Karte mitdrehen: CSS-Transform auf den Leaflet-Container
+  // Karte mitdrehen: Rotation auf den größeren Wrapper (nicht Leaflet selbst)
   function mmUpdateRotation() {
     if (!mmReady || !navState || navState.deviceHeading == null) return;
-    var el = document.getElementById('minimap-container');
-    el.style.transform = 'rotate(' + (-navState.deviceHeading) + 'deg)';
+    var el = document.getElementById('minimap-rotatable');
+    if (el) el.style.transform = 'rotate(' + (-navState.deviceHeading) + 'deg)';
   }
 
   function mmOpen() {
