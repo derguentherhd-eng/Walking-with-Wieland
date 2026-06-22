@@ -3,7 +3,7 @@
    werden absichtlich NICHT gecacht und laufen direkt übers Netz. */
 'use strict';
 
-var CACHE = 'ww-shell-v1';
+var CACHE = 'ww-shell-v2';
 var SHELL = [
   './',
   'index.html',
@@ -33,7 +33,6 @@ var SHELL = [
 self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(CACHE).then(function (c) {
-      // einzeln hinzufügen, damit ein fehlendes Asset die Installation nicht abbricht
       return Promise.all(SHELL.map(function (url) {
         return c.add(url).catch(function () { return null; });
       }));
@@ -59,27 +58,27 @@ self.addEventListener('fetch', function (e) {
   // Fremde Ursprünge (CDN, Karten-Kacheln, ORS-API) unangetastet lassen
   if (url.origin !== self.location.origin) return;
 
-  // Navigationsanfragen: Netz zuerst, bei Offline auf index.html zurückfallen
+  // Navigationsanfragen: Netz zuerst, bei Offline auf gecachte Version zurückfallen
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req).catch(function () {
-        return caches.match(req).then(function (r) { return r || caches.match('index.html'); });
+        return caches.match(req, { ignoreSearch: true })
+          .then(function (r) { return r || caches.match('index.html'); });
       })
     );
     return;
   }
 
-  // Sonstige eigene Dateien: Cache zuerst, sonst Netz (und nachladen)
+  // Assets: Netz zuerst (damit Änderungen sofort wirken), bei Offline Cache
   e.respondWith(
-    caches.match(req).then(function (cached) {
-      if (cached) return cached;
-      return fetch(req).then(function (res) {
-        if (res && res.status === 200 && res.type === 'basic') {
-          var copy = res.clone();
-          caches.open(CACHE).then(function (c) { c.put(req, copy); });
-        }
-        return res;
-      });
+    fetch(req).then(function (res) {
+      if (res && res.status === 200 && res.type === 'basic') {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(req, copy); });
+      }
+      return res;
+    }).catch(function () {
+      return caches.match(req, { ignoreSearch: true });
     })
   );
 });
