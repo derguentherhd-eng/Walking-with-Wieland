@@ -48,6 +48,8 @@
   // Minimap
   var minimap = null, mmUserMarker = null, mmWpMarker = null, mmLine = null;
   var mmReady = false, mmVisible = false;
+  // Device orientation (Kompass)
+  var orientReady = false;
 
   /* ---------- Geolocation ---------- */
   function startTracking() {
@@ -400,6 +402,57 @@
     showExercise(ex);
   });
 
+  /* ---------- Gerätekompass (DeviceOrientationEvent) ---------- */
+
+  function onOrientation(e) {
+    var heading;
+    if (e.webkitCompassHeading != null) {
+      heading = e.webkitCompassHeading;                // iOS: absolut von magn. Nord
+    } else if (e.alpha != null) {
+      heading = (360 - e.alpha + 360) % 360;           // Android
+    } else { return; }
+    if (navState) navState.deviceHeading = heading;
+    navUpdate();
+    mmUpdateRotation();
+  }
+
+  function initDeviceOrientation() {
+    if (!window.DeviceOrientationEvent) return;
+    if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
+      window.addEventListener('deviceorientation', onOrientation, { passive: true });
+      orientReady = true;
+    }
+    // iOS 13+: Berechtigung erst bei Nutzer-Geste (Tap auf Map-Button)
+  }
+
+  function requestOrientationPermission() {
+    if (orientReady || !window.DeviceOrientationEvent) return;
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function (state) {
+        if (state === 'granted') {
+          window.addEventListener('deviceorientation', onOrientation, { passive: true });
+          orientReady = true;
+        }
+      }).catch(function () {});
+    } else {
+      window.addEventListener('deviceorientation', onOrientation, { passive: true });
+      orientReady = true;
+    }
+  }
+
+  // Relative Richtung vom Nutzer zum Waypoint (Kompassbearing → Anzeigetext)
+  function relDirection(brg, heading) {
+    var rel = ((brg - heading) % 360 + 360) % 360;
+    if (rel < 22.5  || rel >= 337.5) return 'geradeaus';
+    if (rel < 67.5)  return 'leicht rechts';
+    if (rel < 112.5) return 'rechts';
+    if (rel < 157.5) return 'scharf rechts';
+    if (rel < 202.5) return 'umkehren';
+    if (rel < 247.5) return 'scharf links';
+    if (rel < 292.5) return 'links';
+    return 'leicht links';
+  }
+
   /* ---------- Navigation: Kompass-Waypoint-System ---------- */
 
   function navBearing(lat1, lng1, lat2, lng2) {
@@ -467,43 +520,38 @@
     }
   }
 
-  // Compass arrow + text hint — called every GPS update
+  // Compass arrow + text hint — called every GPS/orientation update
   function navUpdate() {
     if (!navState || !curPos) return;
-    var wps = navState.waypoints, idx = navState.wpIndex;
-    if (idx >= wps.length) {
+    var wps = navState.waypoints, wi = navState.wpIndex;
+    if (wi >= wps.length) {
       $('instruction-text').textContent = 'Ziel erreicht!';
       $('nav-arrow').style.transform = 'rotate(0deg)';
-      mmUpdate(); return;
+      mmUpdate(); mmUpdateRotation(); return;
     }
-    var wp   = wps[idx];
+    var wp   = wps[wi];
     var dist = WW.haversine(curPos.lat, curPos.lng, wp.lat, wp.lng);
     var brg  = navBearing(curPos.lat, curPos.lng, wp.lat, wp.lng);
 
-    // Compass: rotate arrow relative to travel direction if GPS heading available
+    // Pfeil: relativ zur Kompassausrichtung des Geräts (Oberkante = Laufrichtung)
     var arrowDeg = (navState.deviceHeading != null)
       ? (brg - navState.deviceHeading + 360) % 360
       : brg;
     $('nav-arrow').style.transform = 'rotate(' + arrowDeg + 'deg)';
 
-    // Text: immediate instruction when close to a decision point, else distance
-    var txt;
-    if (wp.instruction && dist < 80) {
-      txt = wp.instruction;
+    // Text: relative Richtung wenn Kompass verfügbar, sonst ORS-Anweisung
+    var dirTxt;
+    if (navState.deviceHeading != null) {
+      dirTxt = relDirection(brg, navState.deviceHeading);
     } else if (wp.instruction) {
-      txt = 'In ' + navDistText(dist) + ' – ' + wp.instruction;
+      dirTxt = wp.instruction;
     } else {
-      txt = navDistText(dist) + ' geradeaus';
-      // Look-ahead: show next turn if within 300 m of a step waypoint
-      for (var j = idx + 1; j < Math.min(idx + 6, wps.length); j++) {
-        if (wps[j].isStep && wps[j].instruction && wps[j].type !== 11 && wps[j].type !== 12) {
-          if (dist < 300) txt += ' – dann ' + wps[j].instruction;
-          break;
-        }
-      }
+      dirTxt = 'geradeaus';
     }
-    $('instruction-text').textContent = txt;
+    $('instruction-text').textContent = 'In ' + navDistText(dist) + ' ' + dirTxt;
+
     mmUpdate();
+    mmUpdateRotation();
   }
 
   /* ---------- ORS: Route laden & parsen ---------- */
@@ -637,28 +685,27 @@
     }
   }
 
+  // Karte mitdrehen: CSS-Transform auf den Leaflet-Container
+  function mmUpdateRotation() {
+    if (!mmReady || !navState || navState.deviceHeading == null) return;
+    var el = document.getElementById('minimap-container');
+    el.style.transform = 'rotate(' + (-navState.deviceHeading) + 'deg)';
+  }
+
   function mmOpen() {
-    $('minimap-overlay').hidden = false;
+    $('inline-minimap').hidden = false;
     mmVisible = true;
     if (!mmReady) setTimeout(mmInit, 80);
-    else setTimeout(function () { minimap.invalidateSize(); mmUpdate(); }, 50);
+    else setTimeout(function () { minimap.invalidateSize(); mmUpdate(); mmUpdateRotation(); }, 50);
   }
-  function mmClose() { $('minimap-overlay').hidden = true; mmVisible = false; }
+  function mmClose() { $('inline-minimap').hidden = true; mmVisible = false; }
 
   /* ---------- Karten-Menü ---------- */
-  $('map-toggle').addEventListener('click', function (e) {
-    e.stopPropagation();
-    var p = $('map-menu-popup'); p.hidden = !p.hidden;
+  $('map-toggle').addEventListener('click', function () {
+    requestOrientationPermission();
+    if ($('inline-minimap').hidden) mmOpen(); else mmClose();
   });
-  document.addEventListener('click', function () { $('map-menu-popup').hidden = true; });
-  $('menu-minimap').addEventListener('click', function () {
-    $('map-menu-popup').hidden = true;
-    if (mmVisible) mmClose(); else mmOpen();
-  });
-  $('menu-fullmap').addEventListener('click', function () {
-    $('map-menu-popup').hidden = true; openMap();
-  });
-  $('minimap-close').addEventListener('click', mmClose);
+  $('menu-fullmap').addEventListener('click', openMap);
 
   /* ---------- Karten-Panel (Leaflet) ---------- */
   function openMap() {
@@ -691,6 +738,7 @@
 
   /* ---------- Start ---------- */
   $('sos').innerHTML = 'Notruf';
+  initDeviceOrientation();
   if (guided) initGuided();
   startTracking();
   tickTimer = setInterval(tick, 1000);

@@ -587,39 +587,31 @@ input[type="range"].range::-moz-range-track {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ---------- Karten-Menü Popup ---------- */
-.walk-top { position: relative; }
-.map-menu-popup {
-  position: absolute; top: 52px; right: 0;
-  background: var(--cream); border-radius: var(--radius-sm);
-  box-shadow: var(--shadow); overflow: hidden; z-index: 36;
-  min-width: 150px;
+/* ---------- Inline Minimap ---------- */
+.nav-row { display: flex; align-items: stretch; gap: 8px; }
+.nav-card { flex: 1; min-width: 0; }
+.map-btn {
+  flex: none; width: 58px;
+  background: var(--cream); color: var(--dark);
+  border: none; border-radius: var(--radius-sm);
+  box-shadow: var(--shadow); cursor: pointer;
+  font-size: .9rem; font-weight: 700; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; -webkit-appearance: none; appearance: none;
 }
-.map-menu-popup__btn {
-  display: block; width: 100%; padding: 12px 16px;
-  background: none; border: none; cursor: pointer;
-  text-align: left; font-size: .95rem; font-weight: 600;
-  color: var(--dark); border-bottom: 1px solid rgba(4,38,21,.08);
+.map-btn:active { opacity: .75; }
+.inline-minimap {
+  width: 100%; height: 190px;
+  border-radius: var(--radius); overflow: hidden;
+  position: relative; box-shadow: var(--shadow);
+  margin-top: 2px;
 }
-.map-menu-popup__btn:last-child { border-bottom: none; }
-.map-menu-popup__btn:active { background: var(--pale); }
-
-/* ---------- Minimap Overlay ---------- */
-.minimap-overlay {
-  position: fixed;
-  top: calc(env(safe-area-inset-top) + 88px);
-  right: 14px;
-  width: 168px; height: 168px;
-  border-radius: 18px; overflow: hidden;
-  box-shadow: 0 6px 24px rgba(4,38,21,.35);
-  z-index: 36;
-  border: 2px solid rgba(255,255,255,.35);
-}
-#minimap-container { width: 100%; height: 100%; }
-.minimap-close {
-  position: absolute; top: 5px; right: 5px; z-index: 1;
-  width: 24px; height: 24px; border-radius: 999px;
-  background: rgba(255,255,255,.88); border: none; cursor: pointer;
-  font-size: 15px; line-height: 24px; text-align: center;
-  color: var(--dark); font-weight: 700;
+#minimap-container { width: 100%; height: 100%; transition: transform .25s ease; }
+.fullmap-btn {
+  position: absolute; bottom: 10px; right: 10px; z-index: 1;
+  width: 36px; height: 36px; border-radius: 10px;
+  background: rgba(247,247,235,.92); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--dark); box-shadow: var(--shadow-sm);
+  -webkit-appearance: none; appearance: none;
 }
