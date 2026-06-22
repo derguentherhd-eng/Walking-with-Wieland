@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Statistik · Walking with Wieland</title>
+  <meta name="theme-color" content="#042615">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Wieland">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="icon" href="assets/icon-192.png">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <main class="screen screen--nav">
+    <section class="card" aria-labelledby="st-title">
+      <h1 class="h2" id="st-title">Statistik</h1>
+      <p class="hint mt-0">Deine Spaziergänge der letzten Wochen.</p>
+
+      <div class="stat-head" aria-hidden="true">
+        <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+      </div>
+
+      <div class="stat-weeks" id="weeks"></div>
+
+      <div class="stat-legend">
+        <span class="legend-item"><span class="legend-swatch"></span>Kein Spaziergang</span>
+        <span class="legend-item"><span class="legend-swatch is-free"></span>Freies Laufen</span>
+        <span class="legend-item"><span class="legend-swatch is-guided"></span>Angeleitete Strecke</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/exercises.js?v=3"></script>
+  <script src="js/trophies.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
+  <script src="js/stats.js?v=3"></script>
+</body>
+</html>

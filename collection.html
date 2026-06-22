@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Wielands Höhle · Walking with Wieland</title>
+  <meta name="theme-color" content="#042615">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Wieland">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="icon" href="assets/icon-192.png">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <div class="bg bg--collection" aria-hidden="true"></div>
+
+  <main class="screen screen--nav">
+
+    <!-- Sticker liegen absolut über dem Regalhintergrund -->
+    <div class="shelf-stickers" aria-hidden="true">
+      <span class="sticker sticker--w5 is-locked" id="st-w5">
+        <img src="assets/fotos.png" alt="">
+      </span>
+      <span class="sticker sticker--w1 is-locked" id="st-w1">
+        <img src="assets/notizen.png" alt="">
+      </span>
+      <span class="sticker sticker--w3 is-locked" id="st-w3">
+        <img src="assets/karten.png" alt="">
+      </span>
+      <span class="sticker sticker--w2 is-locked" id="st-w2">
+        <img src="assets/klangschale.png" alt="">
+      </span>
+      <span class="sticker sticker--w4 is-locked" id="st-w4">
+        <img src="assets/terrarium.png" alt="">
+      </span>
+    </div>
+
+    <!-- Erfolge-Karte schiebt sich von unten über das Regal -->
+    <section class="card collection-card" aria-labelledby="col-title">
+      <h1 class="h2" id="col-title">Wielands Erfolge</h1>
+      <div class="ach-list" id="achievements"></div>
+    </section>
+
+  </main>
+
+  <script src="js/exercises.js?v=3"></script>
+  <script src="js/trophies.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
+  <script src="js/collection.js?v=3"></script>
+</body>
+</html>
