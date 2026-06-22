@@ -544,7 +544,7 @@ input[type="range"].range::-moz-range-track {
   width: 40px; height: 40px;
   flex: none;
   display: flex; align-items: center; justify-content: center;
-  transition: transform .3s ease;
+  will-change: transform;
 }
 .nav-card__arrow svg { width: 36px; height: 36px; }
 
@@ -611,7 +611,7 @@ input[type="range"].range::-moz-range-track {
   position: absolute;
   inset: -25%;
   transform-origin: center center;
-  transition: transform .15s linear;
+  will-change: transform;
 }
 #minimap-container { width: 100%; height: 100%; }
 .fullmap-btn {

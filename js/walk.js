@@ -52,8 +52,9 @@
   var orientReady = false;
   var headingBuf = [];   // [{t, s, c}]  — Ringspeicher der letzten 2 Sek.
   var lastOrientMs = 0;
-  // Kontinuierliche Winkel für CSS-Transition (kein 360°-Überlauf-Sprung)
+  // Kontinuierliche Winkel für rAF-Loop (kein 360°-Überlauf-Sprung)
   var arrowDisplayAngle = 0, mapDisplayAngle = 0;
+  var targetHeading = null;  // aktuell geglätteter Kompasswert (wird in rAF gelesen)
 
   /* ---------- Geolocation ---------- */
   function startTracking() {
@@ -451,14 +452,14 @@
     } else { return; }
 
     var heading = windowedHeading(raw);
+    targetHeading = heading;                     // rAF-Loop liest diesen Wert
     if (navState) navState.deviceHeading = heading;
 
-    // DOM-Updates drosseln: max. 10× pro Sekunde
+    // Texthint drosseln: max. 5× pro Sekunde
     var now = Date.now();
-    if (now - lastOrientMs < 100) return;
+    if (now - lastOrientMs < 200) return;
     lastOrientMs = now;
-    navUpdate();
-    mmUpdateRotation();
+    navUpdate();   // nur Textanweisung – Pfeil & Karte läuft per rAF
   }
 
   function _attachOrientListener() {
@@ -580,28 +581,17 @@
     }
   }
 
-  // Compass arrow + text hint — called every GPS/orientation update
+  // Textanweisung aktualisieren — Pfeil & Karte laufen per rAF (compassRenderLoop)
   function navUpdate() {
     if (!navState || !curPos) return;
     var wps = navState.waypoints, wi = navState.wpIndex;
     if (wi >= wps.length) {
       $('instruction-text').textContent = 'Ziel erreicht!';
-      arrowDisplayAngle = continuousAngle(arrowDisplayAngle, 0);
-      $('nav-arrow').style.transform = 'rotate(' + arrowDisplayAngle + 'deg)';
-      mmUpdate(); mmUpdateRotation(); return;
+      mmUpdate(); return;
     }
     var wp   = wps[wi];
     var dist = WW.haversine(curPos.lat, curPos.lng, wp.lat, wp.lng);
     var brg  = navBearing(curPos.lat, curPos.lng, wp.lat, wp.lng);
-
-    // Pfeil: relativ zur Kompassausrichtung des Geräts (Oberkante = Laufrichtung)
-    var arrowDeg = (navState.deviceHeading != null)
-      ? (brg - navState.deviceHeading + 360) % 360
-      : brg;
-    arrowDisplayAngle = continuousAngle(arrowDisplayAngle, arrowDeg);
-    $('nav-arrow').style.transform = 'rotate(' + arrowDisplayAngle + 'deg)';
-
-    // Text: relative Richtung wenn Kompass verfügbar, sonst ORS-Anweisung
     var dirTxt;
     if (navState.deviceHeading != null) {
       dirTxt = relDirection(brg, navState.deviceHeading);
@@ -611,9 +601,7 @@
       dirTxt = 'geradeaus';
     }
     $('instruction-text').textContent = 'In ' + navDistText(dist) + ' ' + dirTxt;
-
     mmUpdate();
-    mmUpdateRotation();
   }
 
   /* ---------- ORS: Route laden & parsen ---------- */
@@ -747,21 +735,45 @@
     }
   }
 
-  // Karte mitdrehen: Rotation auf den größeren Wrapper (nicht Leaflet selbst)
-  function mmUpdateRotation() {
-    if (!mmReady || !navState || navState.deviceHeading == null) return;
-    var el = document.getElementById('minimap-rotatable');
-    if (!el) return;
-    var mapDeg = (360 - navState.deviceHeading % 360) % 360;
-    mapDisplayAngle = continuousAngle(mapDisplayAngle, mapDeg);
-    el.style.transform = 'rotate(' + mapDisplayAngle + 'deg)';
+  // rAF-Animationsschleife: Pfeil + Minimap bei 60 fps unabhängig von Sensor-Events
+  var RAF_ARROW = 0.18;  // Interpolationsgeschwindigkeit Pfeil
+  var RAF_MAP   = 0.14;  // Interpolationsgeschwindigkeit Karte (etwas sanfter)
+
+  function compassRenderLoop() {
+    requestAnimationFrame(compassRenderLoop);
+    if (targetHeading == null || !navState) return;
+
+    // --- Pfeil ---
+    if (curPos && navState.waypoints && navState.wpIndex < navState.waypoints.length) {
+      var wp  = navState.waypoints[navState.wpIndex];
+      var brg = navBearing(curPos.lat, curPos.lng, wp.lat, wp.lng);
+      var arrowTarget = (brg - targetHeading + 360) % 360;
+      var contArrow   = continuousAngle(arrowDisplayAngle, arrowTarget);
+      var da = contArrow - arrowDisplayAngle;
+      if (Math.abs(da) > 0.05) {
+        arrowDisplayAngle += da * RAF_ARROW;
+        $('nav-arrow').style.transform = 'rotate(' + arrowDisplayAngle + 'deg)';
+      }
+    }
+
+    // --- Minimap ---
+    if (mmReady && mmVisible) {
+      var mapTarget = (360 - targetHeading % 360) % 360;
+      var contMap   = continuousAngle(mapDisplayAngle, mapTarget);
+      var dm = contMap - mapDisplayAngle;
+      if (Math.abs(dm) > 0.05) {
+        mapDisplayAngle += dm * RAF_MAP;
+        var el = document.getElementById('minimap-rotatable');
+        if (el) el.style.transform = 'rotate(' + mapDisplayAngle + 'deg)';
+      }
+    }
   }
 
   function mmOpen() {
     $('inline-minimap').hidden = false;
     mmVisible = true;
     if (!mmReady) setTimeout(mmInit, 80);
-    else setTimeout(function () { minimap.invalidateSize(); mmUpdate(); mmUpdateRotation(); }, 50);
+    else setTimeout(function () { minimap.invalidateSize(); mmUpdate(); }, 50);
   }
   function mmClose() { $('inline-minimap').hidden = true; mmVisible = false; }
 
@@ -804,6 +816,7 @@
   /* ---------- Start ---------- */
   $('sos').innerHTML = 'Notruf';
   initDeviceOrientation();
+  requestAnimationFrame(compassRenderLoop);
   if (guided) initGuided();
   startTracking();
   tickTimer = setInterval(tick, 1000);
