@@ -687,9 +687,19 @@
           : 'Folge dem Weg.';
         if (curPos) { navSmartAdvance(); navUpdate(); }
       })
-      .catch(function () {
-        $('instruction-text').textContent =
-          'Route konnte nicht geladen werden. Du läufst frei weiter.';
+      .catch(function (err) {
+        var msg = err && err.message ? err.message : String(err);
+        $('instruction-text').textContent = 'Fehler: ' + msg;
+        // Retry-Button anzeigen
+        var retryBtn = document.createElement('button');
+        retryBtn.className = 'btn btn-sm';
+        retryBtn.textContent = 'Erneut versuchen';
+        retryBtn.style.cssText = 'margin-top:10px;display:block';
+        retryBtn.addEventListener('click', function () {
+          retryBtn.remove();
+          startGuidedRoute(start, key);
+        });
+        $('walk-top').appendChild(retryBtn);
       });
   }
 
