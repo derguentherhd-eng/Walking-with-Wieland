@@ -457,6 +457,42 @@ input[type="range"].range::-moz-range-track {
   padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
 }
 #map { flex: 1 1 auto; }
+#route-map { flex: 1 1 auto; }
+
+/* Tages-Detail-Panel */
+.day-panel__body {
+  flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 16px; display: flex; flex-direction: column; gap: 16px;
+}
+.walk-record {
+  background: var(--cream); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px; display: flex;
+  flex-direction: column; gap: 10px;
+}
+.walk-record__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.walk-record__time { font-size: .85rem; opacity: .7; }
+.walk-badge {
+  font-size: .75rem; font-weight: 700; padding: 3px 8px;
+  border-radius: 20px; white-space: nowrap;
+}
+.walk-badge--guided { background: var(--green-light); color: var(--dark); }
+.walk-badge--free   { background: var(--sand, #e8e0c8); color: var(--dark); }
+.walk-record__stats {
+  display: flex; gap: 16px; font-size: .9rem; font-weight: 600;
+}
+.walk-record__stats span { display: flex; align-items: center; gap: 4px; }
+.walk-record__ex-label { font-size: .85rem; font-weight: 700; margin: 0; }
+.walk-record__ex-list {
+  margin: 4px 0 0; padding-left: 18px; display: flex;
+  flex-direction: column; gap: 4px; font-size: .875rem;
+}
+.cell--btn {
+  cursor: pointer; border: none; font: inherit;
+  -webkit-appearance: none; appearance: none;
+}
+.cell--btn:active { opacity: .7; }
 
 /* kleine Helfer */
 .stack { display: flex; flex-direction: column; gap: 14px; }

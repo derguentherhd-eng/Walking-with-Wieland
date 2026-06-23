@@ -35,6 +35,10 @@
   var mode = 'walking';        // 'walking' | 'exercise' | 'done'
   var navWasVisible = false;   // merkt, ob walk-top vor der Übung sichtbar war
   var movedSinceLast = 0;
+  var totalDistanceM = 0;
+  var gpsTrack = [];           // subsampled [[lat,lng], …] für Statistik
+  var gpsTrackLastM = 0;       // Meter seit letztem gespeicherten Punkt
+  var walkExercisesDone = [];  // [{ id, text, header }]
   var lastPos = null;
   var curPos = null;
   var watchId = null;
@@ -89,7 +93,15 @@
   function onPos(p) {
     var lat = p.coords.latitude, lng = p.coords.longitude;
     curPos = { lat: lat, lng: lng };
-    if (lastPos) movedSinceLast += WW.haversine(lastPos.lat, lastPos.lng, lat, lng);
+    if (lastPos) {
+      var d = WW.haversine(lastPos.lat, lastPos.lng, lat, lng);
+      movedSinceLast += d;
+      totalDistanceM += d;
+      gpsTrackLastM  += d;
+      if (gpsTrackLastM >= 30) { gpsTrack.push([lat, lng]); gpsTrackLastM = 0; }
+    } else {
+      gpsTrack.push([lat, lng]);
+    }
     lastPos = { lat: lat, lng: lng };
     if (userMarker && map) userMarker.setLatLng([lat, lng]);
     if (navState) { navSmartAdvance(); navUpdate(); }
@@ -223,6 +235,7 @@
 
   function finishExercise(ex) {
     WW.recordExerciseDone(ex.id);
+    walkExercisesDone.push({ id: ex.id, text: ex.text, header: ex.header });
     var key = worldTrophyKey(ex.world);
     doneTrophies.push(key);
     showTrophy(key);
@@ -394,6 +407,18 @@
     if (tickTimer) clearInterval(tickTimer);
     if (watchId !== null && navigator.geolocation) { try { navigator.geolocation.clearWatch(watchId); } catch (e) {} }
     stopSpeak();
+    var endTime = Date.now();
+    if (curPos) gpsTrack.push([curPos.lat, curPos.lng]);
+    WW.saveWalkRecord({
+      id: startTime,
+      date: new Date(startTime).toISOString().slice(0, 10),
+      type: guided ? 'guided' : 'free',
+      start: startTime,
+      durationMs: endTime - startTime,
+      distanceM: Math.round(totalDistanceM),
+      coords: gpsTrack.slice(),
+      exercises: walkExercisesDone.slice()
+    });
     WW.endSession(guided ? 'guided' : 'free');
     WW.clearWalkConfig();
 
@@ -837,7 +862,6 @@
 
   /* ---------- Karten-Menü ---------- */
   $('map-toggle').addEventListener('click', function () {
-    requestOrientationPermission();
     if ($('inline-minimap').hidden) mmOpen(); else mmClose();
   });
   $('menu-fullmap').addEventListener('click', openMap);

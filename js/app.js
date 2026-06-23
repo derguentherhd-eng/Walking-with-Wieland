@@ -257,6 +257,18 @@
     save();
   }
 
+  function saveWalkRecord(rec) {
+    if (!state.walkRecords) state.walkRecords = {};
+    var d = rec.date;
+    if (!state.walkRecords[d]) state.walkRecords[d] = [];
+    state.walkRecords[d].push(rec);
+    save();
+  }
+
+  function getWalkRecords(date) {
+    return (state.walkRecords && state.walkRecords[date]) || [];
+  }
+
   /* ---------- Wochen-/Statistik-Daten ---------- */
   function weekProgress() {
     var goal = (state.settings && state.settings.weeklyGoal) || 4;
@@ -373,7 +385,8 @@
     exerciseById: exerciseById, worldExercises: worldExercises,
     // UI-Helfer
     icon: icon, navHTML: navHTML, mountNav: mountNav, esc: esc,
-    toISO: toISO, todayISO: todayISO
+    toISO: toISO, todayISO: todayISO,
+    saveWalkRecord: saveWalkRecord, getWalkRecords: getWalkRecords
   };
 
 })(this);
