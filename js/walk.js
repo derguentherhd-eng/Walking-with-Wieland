@@ -421,7 +421,7 @@
     if (curPos) gpsTrack.push([curPos.lat, curPos.lng]);
     WW.saveWalkRecord({
       id: startTime,
-      date: new Date(startTime).toISOString().slice(0, 10),
+      date: WW.toISO(new Date(startTime)),
       type: guided ? 'guided' : 'free',
       start: startTime,
       durationMs: endTime - startTime,

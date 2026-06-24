@@ -270,19 +270,40 @@
   }
 
   /* ---------- Wochen-/Statistik-Daten ---------- */
-  function weeklyWorldCounts() {
-    var weekDates = mondayToSunday(new Date()).map(toISO);
+
+  /* Woche beginnt Sonntag 0:00 (= So–Sa) */
+  function sundayOf(d) {
+    var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    x.setDate(x.getDate() - x.getDay()); // x.getDay(): 0=So
+    return x;
+  }
+  function sundayToSaturday(sunday) {
+    var out = [];
+    for (var i = 0; i < 7; i++) {
+      var dd = new Date(sunday); dd.setDate(sunday.getDate() + i); out.push(dd);
+    }
+    return out;
+  }
+  function currentSundayISO() { return toISO(sundayOf(new Date())); }
+
+  function weeklyWorldCountsForWeek(sundayISO) {
+    var sunday = new Date(sundayISO + 'T00:00:00');
+    var weekDates = sundayToSaturday(sunday).map(toISO);
+    var weekSet = {};
+    weekDates.forEach(function (d) { weekSet[d] = true; });
     var counts = {};
-    if (!state.walkRecords) return counts;
-    weekDates.forEach(function (iso) {
-      (state.walkRecords[iso] || []).forEach(function (walk) {
-        (walk.exercises || []).forEach(function (ex) {
-          var def = exerciseById(ex.id);
-          if (def && def.world !== 'special') counts[def.world] = (counts[def.world] || 0) + 1;
-        });
-      });
+    var collected = state.collected || {};
+    Object.keys(collected).forEach(function (id) {
+      if (weekSet[collected[id]]) {
+        var def = exerciseById(id);
+        if (def && def.world !== 'special') counts[def.world] = (counts[def.world] || 0) + 1;
+      }
     });
     return counts;
+  }
+
+  function weeklyWorldCounts() {
+    return weeklyWorldCountsForWeek(currentSundayISO());
   }
 
   function weekProgress() {
@@ -402,7 +423,10 @@
     icon: icon, navHTML: navHTML, mountNav: mountNav, esc: esc,
     toISO: toISO, todayISO: todayISO,
     saveWalkRecord: saveWalkRecord, getWalkRecords: getWalkRecords,
-    weeklyWorldCounts: weeklyWorldCounts
+    weeklyWorldCounts: weeklyWorldCounts,
+    weeklyWorldCountsForWeek: weeklyWorldCountsForWeek,
+    currentSundayISO: currentSundayISO,
+    sundayOf: sundayOf
   };
 
 })(this);
