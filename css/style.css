@@ -384,12 +384,19 @@ input[type="range"].range::-moz-range-track {
 .nav-item.is-active .nav-ico { transform: translateY(-1px); }
 
 /* ---------- Statistik-Raster ---------- */
-.stat-weeks { display: flex; flex-direction: column; gap: 12px; }
-.stat-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.stat-weeks { display: flex; flex-direction: column; gap: 8px; }
 .stat-head {
-  display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;
-  margin: 16px 0 10px; text-align: center;
+  display: grid; grid-template-columns: 28px repeat(7, 1fr); gap: 6px;
+  margin: 16px 0 8px; text-align: center;
   font-size: .72rem; font-weight: 600; opacity: .55;
+}
+.stat-row-wrap {
+  display: grid; grid-template-columns: 28px repeat(7, 1fr); gap: 6px;
+  align-items: center;
+}
+.stat-week-lbl {
+  font-size: .55rem; line-height: 1.15; color: rgba(4,38,21,.5);
+  text-align: center;
 }
 .cell {
   aspect-ratio: 1; border-radius: 8px;
@@ -398,13 +405,15 @@ input[type="range"].range::-moz-range-track {
   background: transparent;
 }
 .cell svg { width: 60%; height: 60%; }
-.cell--free  { background: var(--blue); border-color: transparent; }
+.cell--free   { background: var(--blue);  border-color: transparent; }
 .cell--guided { background: var(--green); border-color: transparent; }
+.cell--both   { background: linear-gradient(135deg, var(--blue) 50%, var(--green) 50%); border-color: transparent; }
 .stat-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; font-size: .85rem; }
 .legend-item { display: inline-flex; align-items: center; gap: 7px; }
 .legend-swatch { width: 16px; height: 16px; border-radius: 5px; border: 2px solid rgba(4, 38, 21, .22); }
-.legend-swatch.is-free { background: var(--blue); border-color: transparent; }
+.legend-swatch.is-free   { background: var(--blue);  border-color: transparent; }
 .legend-swatch.is-guided { background: var(--green); border-color: transparent; }
+.legend-swatch.is-both   { background: linear-gradient(135deg, var(--blue) 50%, var(--green) 50%); border-color: transparent; }
 
 /* ---------- Sammlung / Höhle ---------- */
 .collection-group { margin-bottom: 22px; }
@@ -521,7 +530,17 @@ input[type="range"].range::-moz-range-track {
 .log-ex-header { font-size: .72rem; font-weight: 700; letter-spacing: .06em; opacity: .65; margin: 0 0 4px; }
 .log-ex-text   { margin: 0; line-height: 1.4; }
 
-.log-route { padding: 8px 0 4px 28px; }
+.log-route { padding: 4px 0 8px 28px; }
+.log-route-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(4,38,21,.05);
+  border: 1.5px solid rgba(4,38,21,.2);
+  border-radius: 20px; padding: 7px 15px;
+  font: inherit; font-size: .82rem; color: var(--dark);
+  cursor: pointer; -webkit-appearance: none; appearance: none;
+}
+.log-route-btn:active { opacity: .7; }
+.log-route-icon { width: 15px; height: 15px; flex: none; }
 
 /* Alte walk-record Styles (Fallback) */
 .walk-badge--guided { background: var(--green-light, #A6BD7B); color: var(--dark); }

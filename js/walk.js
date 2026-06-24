@@ -208,7 +208,7 @@
             '<button class="icon-btn" id="speak" type="button" aria-label="Vorlesen" aria-pressed="false"></button>' +
           '</div>' +
         '</div>' +
-        '<img class="wieland wieland--sit" src="assets/wieland-sitzen.gif" alt="Wieland sitzt">' +
+        '<img class="wieland wieland--sit" src="assets/wieland-sitzen.apng" alt="Wieland sitzt">' +
         '<div class="exercise__body" id="ex-body">' + bodyForType(ex) + '</div>' +
         actionsHTML() +
       '</div>';

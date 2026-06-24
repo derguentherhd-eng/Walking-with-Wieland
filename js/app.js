@@ -92,6 +92,7 @@
         s.collected = p.collected || {};
         s.weekWorlds = p.weekWorlds || { key: '', worlds: [] };
         s.sessionIndex = p.sessionIndex || 0;
+        s.walkRecords  = p.walkRecords  || {};
       }
     } catch (e) { /* defekt -> Standard */ }
     return s;
@@ -250,7 +251,9 @@
   }
 
   function endSession(type) {
-    state.days[todayISO()] = (type === 'guided') ? 'guided' : 'free';
+    var t = (type === 'guided') ? 'guided' : 'free';
+    var prev = state.days[todayISO()];
+    state.days[todayISO()] = (!prev || prev === t) ? t : 'both';
     state.achievements.firstWalk = true;
     var wp = weekProgress();
     if (wp.count >= wp.goal) state.achievements.weekGoal = true;

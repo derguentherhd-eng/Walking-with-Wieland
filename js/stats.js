@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var WEEKS_SHOWN = 6;
+  var WEEKS_SHOWN = 12;
   var $ = function (id) { return document.getElementById(id); };
 
   var WORLD_ICONS = {
@@ -36,11 +36,16 @@
     var months = ['Jan.','Feb.','März','Apr.','Mai','Jun.','Jul.','Aug.','Sep.','Okt.','Nov.','Dez.'];
     return days[d.getDay()] + ', ' + d.getDate() + '. ' + months[d.getMonth()] + ' ' + d.getFullYear();
   }
+  function mondayLabel(mondayISO) {
+    var p = mondayISO.split('-');
+    return parseInt(p[2], 10) + '.' + parseInt(p[1], 10) + '.';
+  }
 
   /* ---------- Wochen-Raster ---------- */
   function cellClass(type) {
-    if (type === 'free')   return 'cell cell--free';
-    if (type === 'guided') return 'cell cell--guided';
+    if (type === 'free')    return 'cell cell--free';
+    if (type === 'guided')  return 'cell cell--guided';
+    if (type === 'both')    return 'cell cell--both';
     return 'cell';
   }
   function cellHTML(day) {
@@ -48,13 +53,17 @@
       return '<button class="' + cellClass(day.type) + ' cell--btn" ' +
         'data-date="' + day.date + '" aria-label="' + WW.esc(fmtDateLong(day.date)) + ' – Details"></button>';
     }
-    return '<span class="' + cellClass(day.type) + '">' + WW.icon('paw') + '</span>';
+    return '<span class="' + cellClass(null) + '">' + WW.icon('paw') + '</span>';
   }
 
   function render() {
     var weeks = WW.recentWeeks(WEEKS_SHOWN);
     $('weeks').innerHTML = weeks.map(function (wk) {
-      return '<div class="stat-row">' + wk.days.map(cellHTML).join('') + '</div>';
+      var cells = wk.days.map(cellHTML).join('');
+      return '<div class="stat-row-wrap">' +
+        '<span class="stat-week-lbl">' + mondayLabel(wk.key) + '</span>' +
+        cells +
+      '</div>';
     }).join('');
     $('weeks').addEventListener('click', function (e) {
       var btn = e.target.closest('.cell--btn');
@@ -78,6 +87,9 @@
       '</button>';
   }
 
+  /* SVG Karten-Pin für Route-Button */
+  var ROUTE_SVG = '<svg class="log-route-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+
   function showDayDetail(dateISO) {
     var records = WW.getWalkRecords(dateISO);
     $('day-panel-title').textContent = fmtDateLong(dateISO);
@@ -90,36 +102,43 @@
     }
 
     body.innerHTML = records.map(function (r, recIdx) {
-      var endTs    = r.start + r.durationMs;
-      var typeLbl  = r.type === 'guided' ? 'Angeleitete Strecke' : 'Freies Laufen';
-      var dist     = fmtDistance(r.distanceM);
-      var dur      = fmtDuration(r.durationMs);
+      var endTs   = r.start + r.durationMs;
+      var typeLbl = r.type === 'guided' ? 'Angeleitete Strecke' : 'Freies Laufen';
+      var dist    = fmtDistance(r.distanceM);
+      var dur     = fmtDuration(r.durationMs);
+
+      /* Route-Button (angeleitete Spaziergänge mit Koordinaten) */
+      var routeBtn = (r.type === 'guided' && r.coords && r.coords.length > 1)
+        ? '<div class="log-route"><button class="log-route-btn" ' +
+            'data-rec-idx="' + recIdx + '" data-date="' + dateISO + '" type="button">' +
+            ROUTE_SVG + 'Route ansehen</button></div>'
+        : '';
 
       /* Übungs-Icons */
       var iconsHTML = '';
       if (r.exercises && r.exercises.length) {
-        iconsHTML = '<div class="log-ex-row" id="ex-row-' + recIdx + '">' +
-          r.exercises.map(function (ex, i) { return exerciseIconHTML(ex, i); }).join('') +
-        '</div>' +
-        '<div class="log-ex-detail" id="ex-detail-' + recIdx + '" hidden></div>';
+        iconsHTML = '<div class="log-section" id="ex-row-' + recIdx + '">' +
+          '<div class="log-ex-row">' +
+            r.exercises.map(function (ex, i) { return exerciseIconHTML(ex, i); }).join('') +
+          '</div>' +
+          '<div class="log-ex-detail" id="ex-detail-' + recIdx + '" hidden></div>' +
+        '</div>';
       }
-
-      /* Route-Button */
-      var routeBtn = (r.type === 'guided' && r.coords && r.coords.length > 1)
-        ? '<button class="btn btn-sm btn-ghost log-route-btn" data-rec-idx="' + recIdx + '" data-date="' + dateISO + '" type="button">Route anzeigen</button>'
-        : '';
 
       return '<div class="walk-log" data-rec-idx="' + recIdx + '">' +
         /* Start */
         '<div class="log-entry log-entry--start">' +
           '<span class="log-dot"></span>' +
           '<div class="log-entry__body">' +
-            '<b>Spaziergang gestartet</b><span class="log-badge">' + typeLbl + '</span>' +
+            '<b>Spaziergang gestartet</b>' +
+            '<span class="log-badge">' + typeLbl + '</span>' +
             '<time class="log-time">' + fmtTime(r.start) + ' Uhr</time>' +
           '</div>' +
         '</div>' +
+        /* Route-Link direkt nach dem Start (nur angeleitete) */
+        routeBtn +
         /* Übungen */
-        (iconsHTML ? '<div class="log-section">' + iconsHTML + '</div>' : '') +
+        iconsHTML +
         /* Ende */
         '<div class="log-entry log-entry--end">' +
           '<span class="log-dot"></span>' +
@@ -129,12 +148,10 @@
             '<time class="log-time">' + fmtTime(endTs) + ' Uhr</time>' +
           '</div>' +
         '</div>' +
-        /* Route */
-        (routeBtn ? '<div class="log-route">' + routeBtn + '</div>' : '') +
       '</div>';
     }).join('<hr class="log-sep">');
 
-    /* Übungs-Icon Klick → Detail aufklappen */
+    /* Klick-Handler für Übungs-Icons und Route */
     body.addEventListener('click', function (e) {
       /* Route */
       var routeBtn = e.target.closest('.log-route-btn');
