@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
   <link rel="icon" href="assets/icon-192.png">
-  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
   <div class="bg bg--collection" aria-hidden="true"></div>
@@ -21,34 +21,41 @@
 
     <!-- Sticker liegen absolut über dem Regalhintergrund -->
     <div class="shelf-stickers" aria-hidden="true">
-      <span class="sticker sticker--w5 is-locked" id="st-w5">
-        <img src="assets/fotos.png" alt="">
-      </span>
       <span class="sticker sticker--w1 is-locked" id="st-w1">
-        <img src="assets/notizen.png" alt="">
+        <img src="assets/spuernase.png" alt="">
+        <span class="sticker-badge" id="sb-w1" hidden></span>
+      </span>
+      <span class="sticker sticker--w5 is-locked" id="st-w5">
+        <img src="assets/entdeckerblick.png" alt="">
+        <span class="sticker-badge" id="sb-w5" hidden></span>
       </span>
       <span class="sticker sticker--w3 is-locked" id="st-w3">
-        <img src="assets/karten.png" alt="">
+        <img src="assets/zeitgefuehl.png" alt="">
+        <span class="sticker-badge" id="sb-w3" hidden></span>
+      </span>
+      <span class="sticker sticker--sp is-locked" id="st-sp">
+        <img src="assets/Karten.png" alt="">
       </span>
       <span class="sticker sticker--w2 is-locked" id="st-w2">
-        <img src="assets/klangschale.png" alt="">
+        <img src="assets/ruhe.png" alt="">
+        <span class="sticker-badge" id="sb-w2" hidden></span>
       </span>
       <span class="sticker sticker--w4 is-locked" id="st-w4">
-        <img src="assets/terrarium.png" alt="">
+        <img src="assets/schaetze.png" alt="">
+        <span class="sticker-badge" id="sb-w4" hidden></span>
       </span>
     </div>
 
-    <!-- Erfolge-Karte schiebt sich von unten über das Regal -->
-    <section class="card collection-card" aria-labelledby="col-title">
-      <h1 class="h2" id="col-title">Wielands Erfolge</h1>
-      <div class="ach-list" id="achievements"></div>
+    <!-- Wochenhinweis unten -->
+    <section class="card collection-card" aria-label="Diese Woche">
+      <p class="collection-week-label" id="col-week-label"></p>
     </section>
 
   </main>
 
   <script src="js/exercises.js?v=10"></script>
   <script src="js/trophies.js?v=10"></script>
-  <script src="js/app.js?v=11"></script>
-  <script src="js/collection.js?v=10"></script>
+  <script src="js/app.js?v=12"></script>
+  <script src="js/collection.js?v=11"></script>
 </body>
 </html>

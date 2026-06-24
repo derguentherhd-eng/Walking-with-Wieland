@@ -64,7 +64,7 @@ const WW_EXERCISES = [
   /* ---------- Welt 4 · Schatzkiste (alle stimmungshebend/sanft) ---------- */
   { id: '4.1', world: 4, header: 'WIELAND SAMMELT SCHÄTZE',   text: 'Finde gerade jetzt einen Moment, der schön ist – und merk ihn dir.', type: 'simple', calm: true },
   { id: '4.2', world: 4, header: 'WIELAND DENKT AN FREUNDE',  text: 'Schick einem Menschen in Gedanken einen guten Wunsch.', type: 'simple', calm: true },
-  { id: '4.3', world: 4, header: 'WIELAND LEGT ETWAS AB',     text: 'Stell dir vor, Wieland legt eine Sorge unter einen Stein. Was lässt du heute los?', type: 'simple', calm: true },
+  { id: '4.3', world: 4, header: 'WIELAND LEGT ETWAS AB',     text: 'Stell dir vor, Wieland legt eine Sorge unter einen Stein. Was lässt du heute los? suche dir einen Stein und lege es darunter.', type: 'simple', calm: true },
   { id: '4.4', world: 4, header: 'WIELAND FREUT SICH AUF ETWAS', text: 'Denk an eine kleine Sache, auf die du dich heute noch freust.', type: 'simple', calm: true },
   { id: '4.5', world: 4, header: 'WIELAND SAMMELT GUTES',     text: 'Nenne im Kopf 3 Dinge, die heute schon gut waren – auch ganz kleine.', type: 'counter', target: 3, calm: true },
   { id: '4.6', world: 4, header: 'WIELAND GRÜSST IM STILLEN', text: 'Wünsch der nächsten Person, die dir begegnet, in Gedanken einen schönen Tag.', type: 'simple', calm: true },

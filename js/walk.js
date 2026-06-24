@@ -127,6 +127,15 @@
   }
 
   /* ---------- Übungs-Overlay ---------- */
+  var TROPHY_ICONS = {
+    blatt:   'assets/spuernase.png',
+    welle:   'assets/ruhe.png',
+    mond:    'assets/zeitgefuehl.png',
+    herz:    'assets/schaetze.png',
+    kompass: 'assets/entdeckerblick.png',
+    stern:   'assets/Karten.png'
+  };
+
   function worldTrophyKey(w) { return (WW_WORLDS[w] && WW_WORLDS[w].trophy) || 'stern'; }
 
   function actionsHTML() {
@@ -390,8 +399,8 @@
 
   /* ---------- Trophäen-Modal ---------- */
   function showTrophy(key) {
-    var fn = WW_TROPHIES[key] || WW_TROPHIES.stern;
-    $('trophy-svg').innerHTML = fn(120);
+    var src = TROPHY_ICONS[key] || TROPHY_ICONS.stern;
+    $('trophy-svg').innerHTML = '<img src="' + src + '" class="trophy-icon" alt="">';
     $('trophy-modal').hidden = false;
   }
   $('trophy-continue').addEventListener('click', function () {
@@ -431,8 +440,8 @@
 
     var box = $('done-trophies');
     box.innerHTML = doneTrophies.map(function (k) {
-      var fn = WW_TROPHIES[k] || WW_TROPHIES.stern;
-      return '<span class="token">' + fn(64) + '</span>';
+      var src = TROPHY_ICONS[k] || TROPHY_ICONS.stern;
+      return '<span class="token"><img src="' + src + '" class="trophy-icon" alt=""></span>';
     }).join('');
     $('done-modal').hidden = false;
   }

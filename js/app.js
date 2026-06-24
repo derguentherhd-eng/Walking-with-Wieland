@@ -270,6 +270,21 @@
   }
 
   /* ---------- Wochen-/Statistik-Daten ---------- */
+  function weeklyWorldCounts() {
+    var weekDates = mondayToSunday(new Date()).map(toISO);
+    var counts = {};
+    if (!state.walkRecords) return counts;
+    weekDates.forEach(function (iso) {
+      (state.walkRecords[iso] || []).forEach(function (walk) {
+        (walk.exercises || []).forEach(function (ex) {
+          var def = exerciseById(ex.id);
+          if (def && def.world !== 'special') counts[def.world] = (counts[def.world] || 0) + 1;
+        });
+      });
+    });
+    return counts;
+  }
+
   function weekProgress() {
     var goal = (state.settings && state.settings.weeklyGoal) || 4;
     var days = mondayToSunday(new Date()).map(function (d) {
@@ -386,7 +401,8 @@
     // UI-Helfer
     icon: icon, navHTML: navHTML, mountNav: mountNav, esc: esc,
     toISO: toISO, todayISO: todayISO,
-    saveWalkRecord: saveWalkRecord, getWalkRecords: getWalkRecords
+    saveWalkRecord: saveWalkRecord, getWalkRecords: getWalkRecords,
+    weeklyWorldCounts: weeklyWorldCounts
   };
 
 })(this);

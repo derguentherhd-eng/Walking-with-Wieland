@@ -1,45 +1,49 @@
-/* Wielands Höhle: Sticker auf dem Regal + Erfolge */
+/* Wielands Höhle: Sticker auf dem Regal – wöchentliche Achievements */
 (function () {
   'use strict';
 
-  // Welten -> Sticker-Element-ID
   var WORLD_STICKER = { 1: 'st-w1', 2: 'st-w2', 3: 'st-w3', 4: 'st-w4', 5: 'st-w5' };
+  var WORLD_BADGE   = { 1: 'sb-w1', 2: 'sb-w2', 3: 'sb-w3', 4: 'sb-w4', 5: 'sb-w5' };
 
-  function updateStickers() {
-    var collected = WW.getState().collected || {};
+  function updateShelf() {
+    var counts = WW.weeklyWorldCounts();
+
     Object.keys(WORLD_STICKER).forEach(function (w) {
-      var anyDone = WW.worldExercises(parseInt(w, 10)).some(function (e) {
-        return !!collected[e.id];
-      });
-      var el = document.getElementById(WORLD_STICKER[w]);
-      if (el) {
-        if (anyDone) el.classList.remove('is-locked');
-        else         el.classList.add('is-locked');
+      var n   = counts[parseInt(w, 10)] || 0;
+      var el  = document.getElementById(WORLD_STICKER[w]);
+      var bdg = document.getElementById(WORLD_BADGE[w]);
+      if (!el) return;
+
+      if (n > 0) { el.classList.remove('is-locked'); }
+      else        { el.classList.add('is-locked'); }
+
+      if (bdg) {
+        if (n > 1) { bdg.textContent = n; bdg.hidden = false; }
+        else        { bdg.hidden = true; }
       }
     });
+
+    var spEl = document.getElementById('st-sp');
+    if (spEl) {
+      var bossDone = !!(WW.getState().achievements && WW.getState().achievements.bossTour);
+      if (bossDone) { spEl.classList.remove('is-locked'); }
+      else           { spEl.classList.add('is-locked'); }
+    }
+
+    var label = document.getElementById('col-week-label');
+    if (label) {
+      var worldsDone = Object.values ? Object.values(counts).filter(function (n) { return n > 0; }).length
+        : Object.keys(counts).filter(function (k) { return counts[k] > 0; }).length;
+      if (worldsDone === 0) {
+        label.textContent = 'Diese Woche noch keine Übungen – los geht\'s!';
+      } else {
+        var total = Object.keys(counts).reduce(function (s, k) { return s + (counts[k] || 0); }, 0);
+        label.textContent = 'Diese Woche: ' + total + ' ' + (total === 1 ? 'Übung' : 'Übungen') +
+          ' aus ' + worldsDone + ' ' + (worldsDone === 1 ? 'Welt' : 'Welten') + '.';
+      }
+    }
   }
 
-  function renderAchievements() {
-    var a = WW.getState().achievements || {};
-    var defs = [
-      { key: 'firstWalk',     title: 'Erster Spaziergang mit Wieland', desc: 'Du warst zum ersten Mal mit Wieland unterwegs.' },
-      { key: 'weekGoal',      title: 'Wochenziel erreicht',             desc: 'Du hast dein Wochenziel an Spaziergängen geschafft.' },
-      { key: 'allWorldsWeek', title: 'Entdecker der Woche',             desc: 'In einer Woche aus jeder Welt eine Übung gemacht.' },
-      { key: 'bossTour',      title: 'Große Entdeckungstour',           desc: 'Du hast die große Entdeckungstour gemeistert.' }
-    ];
-
-    document.getElementById('achievements').innerHTML = defs.map(function (d) {
-      var done  = !!a[d.key];
-      var badge = done ? WW.icon('check') : WW.icon('paw');
-      return '<div class="ach' + (done ? ' is-done' : '') + '">' +
-        '<span class="ach__badge">' + badge + '</span>' +
-        '<span class="ach__txt"><b>' + WW.esc(d.title) + '</b>' +
-        '<span>' + WW.esc(done ? d.desc : 'Noch nicht freigeschaltet.') + '</span></span>' +
-        '</div>';
-    }).join('');
-  }
-
-  updateStickers();
-  renderAchievements();
+  updateShelf();
   WW.mountNav('collection');
 })();
