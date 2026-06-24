@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Spaziergang · Walking with Wieland</title>
+  <meta name="theme-color" content="#042615">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Wieland">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="stylesheet" href="css/style.css?v=13">
+  <!-- Leaflet (nur für die geführte Strecke; lädt im Browser, OpenStreetMap-Karten) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <main class="screen screen--walk" id="walk-main">
+
+    <!-- Navigations-Karte (nur bei geführter Route sichtbar) -->
+    <div class="walk-top" id="walk-top" hidden>
+      <div class="nav-row">
+        <div class="nav-card">
+          <span class="nav-card__text" id="instruction-text">Route wird geladen…</span>
+          <span class="nav-card__arrow" id="nav-arrow" aria-hidden="true"></span>
+        </div>
+        <button class="map-btn" id="map-toggle" type="button" aria-label="Karte ein-/ausblenden">Map</button>
+      </div>
+      <!-- Inline Minimap (unter der Nav-Karte, togglebar) -->
+      <div class="inline-minimap" id="inline-minimap" hidden>
+        <div id="minimap-rotatable"><div id="minimap-container"></div></div>
+        <button class="fullmap-btn" id="menu-fullmap" type="button" aria-label="Vollbild-Karte">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="center-col walk-center" id="walk-center">
+      <p class="overlay-text text-center" id="walk-hint">Leg dein Handy weg…</p>
+      <p class="walk-sub text-center" id="walk-sub">Wieland meldet sich unterwegs bei dir.</p>
+      <img class="wieland wieland--walk" src="assets/wieland-laufen.gif" alt="Wieland läuft neben dir">
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="walkbar">
+      <a class="walkbar__sos" id="sos" href="tel:112">Notruf</a>
+      <button class="btn btn-sm btn-ghost" id="debug-ex" type="button" title="Debug: Übung auslösen">⚡</button>
+      <button class="btn btn-light btn-sm" id="end-walk" type="button">Beenden</button>
+    </div>
+  </main>
+
+  <!-- Übungs-Overlay (Inhalt per JS) -->
+  <div class="exercise-layer" id="exercise-layer" hidden></div>
+
+  <!-- Trophäen-Modal nach "Geschafft" -->
+  <div class="modal" id="trophy-modal" hidden>
+    <div class="card modal-card card--center" role="dialog" aria-modal="true" aria-labelledby="trophy-title">
+      <div class="trophy-big pop" id="trophy-svg"></div>
+      <h2 class="h2" id="trophy-title">Schatz gesammelt!</h2>
+      <p class="lead" id="trophy-text">Wieland legt ihn in seine Höhle.</p>
+      <div class="btn-row mt-16">
+        <button class="btn" id="trophy-continue" type="button">Weiter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Abschluss-Modal nach "Beenden" -->
+  <div class="modal" id="done-modal" hidden>
+    <div class="card modal-card card--center" role="dialog" aria-modal="true" aria-labelledby="done-title">
+      <h2 class="h2" id="done-title">Spaziergang beendet</h2>
+      <p class="lead" id="done-text"></p>
+      <div class="modal-trophies" id="done-trophies"></div>
+      <div class="btn-row mt-16">
+        <a class="btn" href="index.html">Zur Startseite</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Karten-Panel -->
+  <div class="map-panel" id="map-panel" hidden>
+    <div class="map-panel__bar">
+      <strong>Deine Route</strong>
+      <button class="icon-btn" id="map-close" type="button" aria-label="Karte schließen"></button>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <script src="js/exercises.js?v=10"></script>
+  <script src="js/trophies.js?v=10"></script>
+  <script src="js/app.js?v=12"></script>
+  <script src="js/walk.js?v=19"></script>
+</body>
+</html>
