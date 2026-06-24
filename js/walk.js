@@ -177,7 +177,7 @@
                '<div class="counter" id="count">0</div>' +
                '<button class="tap-area" id="tap" type="button" aria-label="Tippen zum Sammeln"><span class="counter__hint">Tippen</span></button>';
       default: // simple
-        return '<img class="wieland wieland--sit" src="assets/wieland.png" alt="Wieland macht mit">';
+        return '';
     }
   }
 
@@ -199,6 +199,7 @@
             '<button class="icon-btn" id="speak" type="button" aria-label="Vorlesen" aria-pressed="false"></button>' +
           '</div>' +
         '</div>' +
+        '<img class="wieland wieland--sit" src="assets/Wieland%20Sitzen.GIF" alt="Wieland sitzt">' +
         '<div class="exercise__body" id="ex-body">' + bodyForType(ex) + '</div>' +
         actionsHTML() +
       '</div>';
