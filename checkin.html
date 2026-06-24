@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mini Check-In · Walking with Wieland</title>
+  <meta name="theme-color" content="#042615">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Wieland">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="stylesheet" href="css/style.css?v=13">
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <main class="screen screen--center">
+    <div class="checkin-wrap">
+      <section class="card" aria-labelledby="ci-title">
+        <h1 class="h2" id="ci-title">Mini Check-In</h1>
+
+        <!-- Energie = Fitness-Proxy für Routenlänge -->
+        <div class="field">
+          <div class="ci-label-row">
+            <label class="field__label" for="energy">Wie viel Energie hast du?</label>
+            <span class="energy-badge" id="energy-time">ca. 30 Min.</span>
+          </div>
+          <input class="range" type="range" id="energy" min="0" max="100" value="50"
+                 aria-describedby="energy-ends">
+          <p class="hint" id="energy-ends">wenig … viel · Routenlänge passt sich an</p>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="stress">Wie gestresst fühlst du dich?</label>
+          <input class="range" type="range" id="stress" min="0" max="100" value="50"
+                 aria-describedby="stress-ends">
+          <p class="hint" id="stress-ends">entspannt … gestresst</p>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="mood">Wie bist du heute gelaunt?</label>
+          <input class="range" type="range" id="mood" min="0" max="100" value="50"
+                 aria-describedby="mood-ends">
+          <p class="hint" id="mood-ends">mies … bestens</p>
+        </div>
+
+        <!-- Geführte Route an/aus -->
+        <div class="switch-row" style="margin-top:6px">
+          <label class="field__label" for="route">Strecke generieren?</label>
+          <span class="switch">
+            <input type="checkbox" id="route">
+            <span class="switch__slider" aria-hidden="true"></span>
+          </span>
+        </div>
+
+        <p class="hint" id="route-hint" hidden style="margin-top:6px;color:#c97b00">
+          Kein Schlüssel hinterlegt – in den Einstellungen eintragen. Ohne Schlüssel startest du frei.
+        </p>
+
+        <!-- Standort-Auswahl (nur sichtbar wenn Route an) -->
+        <div id="location-choice" hidden aria-live="polite">
+          <p class="field__label" style="margin:14px 0 8px">Startpunkt</p>
+          <div class="loc-row">
+            <button class="btn btn-sm" id="loc-gps" type="button">Aktueller Standort</button>
+            <button class="btn btn-sm btn-ghost" id="loc-home" type="button" hidden>
+              Heimat-Standort
+            </button>
+          </div>
+          <p class="hint" id="loc-hint" style="margin-top:8px"></p>
+        </div>
+
+        <button class="icon-btn icon-btn--bare card-close-center" id="ci-close"
+                type="button" aria-label="Abbrechen und zurück"></button>
+      </section>
+
+      <button class="btn" id="ci-start" type="button">Starten</button>
+    </div>
+  </main>
+
+  <script src="js/exercises.js?v=10"></script>
+  <script src="js/trophies.js?v=10"></script>
+  <script src="js/app.js?v=12"></script>
+  <script src="js/checkin.js?v=11"></script>
+</body>
+</html>
