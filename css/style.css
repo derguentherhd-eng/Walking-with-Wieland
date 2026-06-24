@@ -255,9 +255,8 @@ input[type="range"].range::-moz-range-track {
 }
 
 /* ---------- Wieland ---------- */
-.wieland { width: min(72%, 320px); height: auto; pointer-events: none; }
-/* screen-blend entfernt schwarze GIF-Hintergründe (keine Transparenz in GIF) */
-.wieland--walk { width: min(60%, 260px); mix-blend-mode: screen; }
+.wieland { width: min(72%, 320px); height: auto; pointer-events: none; background: transparent; }
+.wieland--walk { width: min(60%, 260px); }
 .wieland--sit  { width: min(42%, 180px); }
 @keyframes ww-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 .wieland--bob { animation: ww-bob 3.2s ease-in-out infinite; }
