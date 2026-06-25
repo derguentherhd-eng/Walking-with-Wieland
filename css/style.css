@@ -62,7 +62,11 @@ a { color: inherit; }
   /* kein background-attachment:fixed -> auf iOS sonst ruckelig */
 }
 .bg--home       { background-image: url("../assets/wieland-hoehle-hg.png"); }
-.bg--collection { background-image: url("../assets/regal-hg.png"); }
+.bg--collection {
+  background-image: url("../assets/Hintergrundhoele.png");
+  background-size: cover;
+  background-position: center center;
+}
 .bg--plain      { background: var(--cream); }
 
 /* ---------- Screen-Container ---------- */
@@ -647,58 +651,261 @@ input[type="range"].range::-moz-range-track {
 .mt-16 { margin-top: 16px; }
 .mt-0 { margin-top: 0; }
 
-/* ---------- Wielands Höhle: Trophy-Grid auf dem Regal ----------
-   Hintergrund: regal-hg.png (1080×1920, 9:16), background-size: cover.
-   Das Bild hat 3 Bretter:
-     Brett 1 (oben):  Oberkante ≈ 22 % von oben
-     Brett 2 (mitte): Oberkante ≈ 46 %
-     Brett 3 (unten): Oberkante ≈ 65 %
-   Icons sitzen AUF dem Brett → bottom des Icons = Oberkante des Bretts.
-   Umrechnung in bottom %: bottom = 100 − top_des_bretts
-     Brett 1: bottom ≈ 78 %
-     Brett 2: bottom ≈ 54 %
-     Brett 3: bottom ≈ 35 %
-   Horizontale Hälften: links-Mitte ≈ 21 %, rechts-Mitte ≈ 76 %, Bildmitte 50 %.
+/* ---------- Kamera-Overlay ---------- */
+.cam-overlay {
+  position: fixed; inset: 0; z-index: 80;
+  background: #000;
+  display: flex; flex-direction: column;
+}
+.cam-inner { display: flex; flex-direction: column; height: 100%; }
+.cam-preview-wrap { flex: 1 1 auto; position: relative; overflow: hidden; }
+.cam-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cam-controls {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: rgba(0,0,0,.85); gap: 16px; flex: none;
+}
+.cam-counter { color: #fff; font-size: 1.1rem; font-weight: 700; min-width: 64px; text-align: center; }
+.cam-shutter {
+  width: 68px; height: 68px; border-radius: 50%; flex: none;
+  border: 5px solid #fff; background: rgba(255,255,255,.18);
+  cursor: pointer; transition: background .12s;
+  -webkit-appearance: none; appearance: none;
+}
+.cam-shutter:active { background: rgba(255,255,255,.55); }
+.cam-close-btn {
+  width: 44px; height: 44px; border-radius: 50%; flex: none;
+  border: 2px solid rgba(255,255,255,.45); background: rgba(0,0,0,.4);
+  color: #fff; font-size: 1.6rem; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  -webkit-appearance: none; appearance: none;
+}
+.cam-close-btn:active { opacity: .7; }
+.cam-hint { color: rgba(255,255,255,.8); font-size: .9rem; text-align: center; padding: 6px 16px; min-height: 26px; flex: none; }
+.cam-fallback {
+  flex: 1 1 auto; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 18px; padding: 32px 24px;
+}
+.cam-fallback__text { color: rgba(255,255,255,.9); text-align: center; line-height: 1.55; }
+.cam-fallback__btn { width: auto; min-width: 180px; text-align: center; }
+.cam-skip-btn { color: rgba(255,255,255,.6); }
+
+/* ---------- Lightbox ---------- */
+.lightbox {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(0,0,0,.96);
+  display: flex; flex-direction: column;
+}
+.lightbox__img-wrap { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 52px 16px 8px; overflow: hidden; }
+.lightbox__img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+.lightbox__bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: rgba(0,0,0,.75); gap: 10px; flex: none;
+}
+.lightbox__nav {
+  width: 44px; height: 44px; border-radius: 50%; flex: none;
+  border: 2px solid rgba(255,255,255,.3); background: rgba(255,255,255,.1);
+  color: #fff; font-size: 2rem; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  -webkit-appearance: none; appearance: none;
+}
+.lightbox__nav:disabled { opacity: .25; pointer-events: none; }
+.lightbox__nav:active { background: rgba(255,255,255,.2); }
+.lightbox__actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.lightbox__close {
+  position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 14px;
+  width: 40px; height: 40px; border-radius: 50%; z-index: 91;
+  border: 2px solid rgba(255,255,255,.35); background: rgba(0,0,0,.55);
+  color: #fff; font-size: 1.5rem; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  -webkit-appearance: none; appearance: none;
+}
+.lightbox__close:active { opacity: .7; }
+.lightbox__save-hint { color: rgba(255,255,255,.55); font-size: .75rem; text-align: center; padding: 4px 16px 10px; flex: none; }
+
+/* ---------- Foto-Strip (Statistik) ---------- */
+.photo-strip-wrap { margin: 12px 0 0; }
+.photo-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.photo-strip::-webkit-scrollbar { display: none; }
+.photo-strip__thumb {
+  flex: none; width: 72px; height: 72px; border-radius: 8px; overflow: hidden;
+  border: 2px solid rgba(4,38,21,.12); background: rgba(4,38,21,.05);
+  cursor: pointer; padding: 0;
+  -webkit-appearance: none; appearance: none;
+}
+.photo-strip__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-strip__thumb:active { opacity: .75; }
+.photo-strip__empty { font-size: .8rem; color: rgba(4,38,21,.5); margin: 8px 0 0; }
+
+/* ---------- Welt-Galerie-Panel (Höhle) ---------- */
+.gallery-panel {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+  background: var(--cream);
+}
+.gallery-panel__bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+  border-bottom: 1px solid rgba(4,38,21,.1); flex: none;
+}
+.gallery-panel__title { font-size: 1rem; font-weight: 700; }
+.gallery-panel__close { margin-left: auto; }
+.gallery-panel__body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 16px calc(env(safe-area-inset-bottom) + 24px); }
+.gallery-panel__empty { text-align: center; padding: 56px 24px; opacity: .6; line-height: 1.65; }
+.gallery-group { margin-bottom: 28px; }
+.gallery-group__date { font-size: .78rem; font-weight: 700; letter-spacing: .05em; opacity: .6; margin: 0 0 10px; text-transform: uppercase; }
+.gallery-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.gallery-thumb {
+  aspect-ratio: 1; border-radius: 10px; overflow: hidden;
+  border: 2px solid rgba(4,38,21,.1); background: rgba(4,38,21,.06);
+  cursor: pointer; padding: 0;
+  -webkit-appearance: none; appearance: none;
+}
+.gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery-thumb:active { opacity: .75; }
+
+/* Klickbarer Trophy-Slot (Höhle) */
+.trophy-slot--clickable { pointer-events: auto; cursor: pointer; }
+.trophy-slot--clickable:active img { opacity: .8; }
+
+/* ---------- Wielands Höhle: Position-Layer + Trophy-Grid ----------
+   Hintergrund: Hintergrundhoele.png (background-size: cover).
+   Overlay: Positionen.svg (viewBox 0 0 259.2 460.8), volle Breite,
+            vertikal zentriert via top:50% + translateY(-50%).
+   Alle %-Werte sind relativ zur .position-layer (= SVG-viewBox).
+
+   Formel:
+     bottom = (1 − (box_y + box_h) / 460.8) × 100
+     left   = (box_x + box_w / 2) / 259.2 × 100
+
+   Box-Koordinaten aus Positionen.svg:
+     Box_oben_links   (W5): x=13.96  y=109.86 w=130.36 h=66.94
+     Box_oben_rechts  (W4): x=157.85 y=110.63 w=89.01  h=66.94
+     Box_Mitte        (W1): x=20.89  y=212.58 w=222.67 h=66.94
+     Box_unten_links  (W2): x=15.77  y=312.99 w=93.75  h=66.94
+     Box_unten_rechts (W3): x=116.92 y=313.76 w=131.14 h=66.94
    -------------------------------------------------------------------*/
-.shelf-grid {
-  position: absolute;
-  inset: 0;
+
+/* Overlay-Layer: volle Breite, SVG-Seitenverhältnis, vertikal zentriert */
+.position-layer {
+  position: fixed;
+  left: 0;
+  width: 100%;
+  aspect-ratio: 259.2 / 460.8;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 1;
   pointer-events: none;
 }
 
-/* Basis-Slot: absolut, zentriert auf seinem horizontalen Ankerpunkt */
+.position-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.shelf-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .trophy-slot {
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: block;
   transition: opacity .35s;
 }
 .trophy-slot img { width: 100%; height: auto; display: block; }
 .trophy-slot.is-empty { opacity: 0; pointer-events: none; }
 
-/* Weiße Zahl unterhalb des Icons (nur wenn > 1) */
+/* Zahl sitzt in der zahl_*-Box direkt unter dem Brett.
+   top:100% setzt Oberkante der Zahl auf Unterkante des Icons (≈ Brettkante). */
 .trophy-count {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 2px;
   color: #fff;
   font-size: .85rem;
   font-weight: 800;
   line-height: 1;
-  margin-top: 4px;
-  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,.65);
+  pointer-events: none;
 }
 
-/* ── Positionen (icon-BOTTOM auf Oberkante des jeweiligen Bretts) ── */
-/* Oberes Brett links  → Welt 5 Entdeckerblick */
-.trophy--w5 { width: 36%; bottom: 78%; left: 21%;  transform: translateX(-50%); }
-/* Oberes Brett rechts → Welt 4 Schatzkiste */
-.trophy--w4 { width: 36%; bottom: 78%; left: 76%;  transform: translateX(-50%); }
-/* Mittleres Brett mitte → Welt 1 Spürnase */
-.trophy--w1 { width: 42%; bottom: 54%; left: 50%;  transform: translateX(-50%); }
-/* Unteres Brett links → Welt 2 Ruhe */
-.trophy--w2 { width: 34%; bottom: 35%; left: 21%;  transform: translateX(-50%); }
-/* Unteres Brett rechts → Welt 3 Zeitgefühl */
-.trophy--w3 { width: 32%; bottom: 35%; left: 76%;  transform: translateX(-50%); }
+/* ── Trophy-Positionen (aus Positionen.svg-Boxen, relativ zur .position-layer) ──
+   bottom = (1 − (box_y + box_h) / 460.8) × 100
+   left   = (box_x + box_w / 2) / 259.2 × 100                                    */
+/* W5 Entdeckerblick  – Box_oben_links:   bottom=(1-176.80/460.8)=61.6%  left=79.14/259.2=30.5% */
+.trophy--w5 { width: 33%; bottom: 61.6%; left: 30.5%; transform: translateX(-50%); }
+/* W4 Schatzkiste     – Box_oben_rechts:  bottom=(1-177.57/460.8)=61.5%  left=202.36/259.2=78.1% */
+.trophy--w4 { width: 24%; bottom: 61.5%; left: 78.1%; transform: translateX(-50%); }
+/* W1 Spürnase        – Box_Mitte:        bottom=(1-279.52/460.8)=39.3%  left=132.23/259.2=51.0% */
+.trophy--w1 { width: 36%; bottom: 39.3%; left: 51.0%; transform: translateX(-50%); }
+/* W2 Ruhe            – Box_unten_links:  bottom=(1-379.93/460.8)=17.6%  left=62.65/259.2=24.2% */
+.trophy--w2 { width: 23%; bottom: 17.6%; left: 24.2%; transform: translateX(-50%); }
+/* W3 Zeitgefühl      – Box_unten_rechts: bottom=(1-380.70/460.8)=17.4%  left=182.49/259.2=70.4% */
+.trophy--w3 { width: 33%; bottom: 17.4%; left: 70.4%; transform: translateX(-50%); }
+
+/* ── Fotoleine: Polaroid-Slots ────────────────────────────────
+   Leinenvektor in Positionen.svg (root-Ebene, SVG-Koordinaten):
+     M.2,11.62 c18.31,11.11,63.28,35.03,125.17,34.48
+                66.38,-0.59,113.36,-28.99,130.91,-40.87
+
+   5 Aufhängepunkte (Bezier-Berechnung, top = y/460.8×100, left = x/259.2×100):
+     1. Seg1 t=0.35: x=28.81 y=26.40 → left=11.1% top=5.7%
+     2. Seg1 t=0.75: x=82.28 y=42.51 → left=31.7% top=9.2%
+     3. P3 (Scheitelpunkt): x=125.37 y=46.10 → left=48.4% top=10.0%
+     4. Seg2 t=0.30: x=178.87 y=39.26 → left=69.0% top=8.5%
+     5. Seg2 t=0.65: x=227.49 y=21.88 → left=87.8% top=4.7%
+
+   Breite 13% → Safe-Zone: linke Kante 4.6%, rechte Kante 94.3%  ✓
+   -------------------------------------------------------------------*/
+.polaroid-slot {
+  position: absolute;
+  width: 13%;
+  display: none;
+  pointer-events: auto;
+  cursor: pointer;
+  transform-origin: top center;
+}
+.polaroid-slot.has-photo { display: block; }
+
+#pol-1 { left: 11.1%; top: 5.7%;  transform: translateX(-50%) rotate(-4deg); }
+#pol-2 { left: 31.7%; top: 9.2%;  transform: translateX(-50%) rotate(3deg);  }
+#pol-3 { left: 48.4%; top: 10.0%; transform: translateX(-50%) rotate(-2deg); }
+#pol-4 { left: 69.0%; top: 8.5%;  transform: translateX(-50%) rotate(4deg);  }
+#pol-5 { left: 87.8%; top: 4.7%;  transform: translateX(-50%) rotate(-3deg); }
+
+.polaroid-slot:active { opacity: .8; }
+
+/* 1:1-Verhältnis via padding-bottom-Trick */
+.polaroid-frame {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  background-image: url("../assets/Polaroidrahmen.svg");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* Foto innerhalb des Bilderrahmen-Rects (Polaroid-SVG: 136.8×136.8)
+   Bilderrahmen: x=18.95 y=11.01 w=98.11 h=86.94  rotate(-1.54°) */
+.polaroid-photo {
+  position: absolute;
+  left: 13.9%;
+  top: 8.0%;
+  width: 71.7%;
+  height: 63.6%;
+  object-fit: cover;
+  border-radius: 4px;
+  transform: rotate(-1.54deg);
+  transform-origin: center center;
+}
 
 /* Wochen-Navigation (Bar direkt über der Haupt-Nav) */
 .week-nav {

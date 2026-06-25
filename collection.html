@@ -12,61 +12,69 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
   <link rel="icon" href="assets/icon-192.png">
-  <link rel="stylesheet" href="css/style.css?v=16">
+  <link rel="stylesheet" href="css/style.css?v=23">
 </head>
 <body>
-  <!-- Regal-Hintergrund füllt den ganzen Screen -->
+  <!-- Hintergrundbild füllt den gesamten Screen (background-size: cover) -->
   <div class="bg bg--collection" aria-hidden="true"></div>
 
-  <main class="screen screen--nav">
+  <!-- Position-Layer: Positionen.svg als Overlay (volle Breite, vertikal zentriert)
+       Enthält Regalbretter-Grafik, Trophy-Grid und Polaroid-Slots.
+       pointer-events: none auf Layer, auto nur auf Polaroid-Slots. -->
+  <div class="position-layer" aria-hidden="true">
+    <img src="assets/Positionen.svg" class="position-svg" alt="">
 
-    <!-- Trophy-Grid: unsichtbare Slots auf den 3 Regalbrettern -->
-    <div class="shelf-grid" aria-hidden="true">
-
-      <!-- Oberes Brett links → Welt 5 Entdeckerblick -->
+    <!-- Trophy-Grid (Boxen aus Positionen.svg) -->
+    <div class="shelf-grid">
+      <!-- Box_oben_links → Welt 5 Entdeckerblick -->
       <div class="trophy-slot trophy--w5 is-empty" id="ts-w5">
         <img src="assets/entdeckerblick.png" alt="">
         <span class="trophy-count" id="tc-w5"></span>
       </div>
-
-      <!-- Oberes Brett rechts → Welt 4 Schatzkiste -->
+      <!-- Box_oben_rechts → Welt 4 Schatzkiste -->
       <div class="trophy-slot trophy--w4 is-empty" id="ts-w4">
         <img src="assets/schaetze.png" alt="">
         <span class="trophy-count" id="tc-w4"></span>
       </div>
-
-      <!-- Mittleres Brett mitte → Welt 1 Spürnase -->
+      <!-- Box_Mitte → Welt 1 Spürnase -->
       <div class="trophy-slot trophy--w1 is-empty" id="ts-w1">
         <img src="assets/spuernase.png" alt="">
         <span class="trophy-count" id="tc-w1"></span>
       </div>
-
-      <!-- Unteres Brett links → Welt 2 Ruhe -->
+      <!-- Box_unten_links → Welt 2 Ruhe -->
       <div class="trophy-slot trophy--w2 is-empty" id="ts-w2">
         <img src="assets/ruhe.png" alt="">
         <span class="trophy-count" id="tc-w2"></span>
       </div>
-
-      <!-- Unteres Brett rechts → Welt 3 Zeitgefühl -->
+      <!-- Box_unten_rechts → Welt 3 Zeitgefühl -->
       <div class="trophy-slot trophy--w3 is-empty" id="ts-w3">
         <img src="assets/zeitgefuehl.png" alt="">
         <span class="trophy-count" id="tc-w3"></span>
       </div>
-
     </div>
 
+    <!-- Fotoleine: bis zu 5 Polaroids, nur diese sind klickbar -->
+    <div class="polaroid-slot" id="pol-1" role="button" tabindex="0" aria-label="Foto-Galerie öffnen"></div>
+    <div class="polaroid-slot" id="pol-2" role="button" tabindex="0" aria-label="Foto-Galerie öffnen"></div>
+    <div class="polaroid-slot" id="pol-3" role="button" tabindex="0" aria-label="Foto-Galerie öffnen"></div>
+    <div class="polaroid-slot" id="pol-4" role="button" tabindex="0" aria-label="Foto-Galerie öffnen"></div>
+    <div class="polaroid-slot" id="pol-5" role="button" tabindex="0" aria-label="Foto-Galerie öffnen"></div>
+  </div>
+
+  <main class="screen screen--nav">
     <!-- Wochen-Navigation unten (über der Haupt-Nav) -->
     <div class="week-nav" role="navigation" aria-label="Wochennavigation">
       <button class="week-nav__btn" id="week-prev" type="button" aria-label="Vorherige Woche">&#8249;</button>
       <span class="week-nav__label" id="week-label"></span>
       <button class="week-nav__btn" id="week-next" type="button" aria-label="Nächste Woche">&#8250;</button>
     </div>
-
   </main>
 
   <script src="js/exercises.js?v=10"></script>
   <script src="js/trophies.js?v=10"></script>
   <script src="js/app.js?v=15"></script>
-  <script src="js/collection.js?v=12"></script>
+  <script src="js/photoStore.js?v=1"></script>
+  <script src="js/camera.js?v=1"></script>
+  <script src="js/collection.js?v=15"></script>
 </body>
 </html>

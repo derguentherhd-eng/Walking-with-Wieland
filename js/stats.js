@@ -177,6 +177,17 @@
             detail.innerHTML =
               '<p class="log-ex-header">' + WW.esc(ex.header || '') + '</p>' +
               '<p class="log-ex-text">' + WW.esc(ex.text || '') + '</p>';
+
+            /* Foto-Strip für kamera-aktivierte Übungen */
+            var hasCam = WW.CAMERA_ENABLED_IDS && WW.CAMERA_ENABLED_IDS.indexOf(ex.id) >= 0;
+            if (hasCam && WW.photoStore && WW.renderPhotoStrip) {
+              var stripWrap = document.createElement('div');
+              stripWrap.className = 'photo-strip-wrap';
+              detail.appendChild(stripWrap);
+              WW.photoStore.getPhotosByExercise(ex.id).then(function (photos) {
+                if (detail.isConnected) WW.renderPhotoStrip(stripWrap, photos);
+              });
+            }
           }
         }
       }

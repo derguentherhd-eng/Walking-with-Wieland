@@ -25,7 +25,7 @@
   /* ---------- Sitzung + Auswahl ---------- */
   WW.startSession();
   var minutes = WW.estimateMinutes(checkin.energy);
-  var plan = WW.selectExercises(checkin, minutes);
+  var plan = WW.buildRoute(checkin, { routeMinutes: minutes });
   var exercises = plan.exercises.slice();
   var totalMs = minutes * 60 * 1000;
   var interval = testMode ? TEST_INTERVAL : Math.max(60000, totalMs / (plan.count + 1));
@@ -113,7 +113,11 @@
     if (mode !== 'walking') return;
     // Wenn alle geplanten Übungen gespielt: automatisch nachladen
     if (idx >= exercises.length) {
-      var more = WW.selectExercises(checkin, minutes);
+      var more = WW.buildRoute(checkin, {
+        routeMinutes: minutes,
+        allowSpecial: false,
+        history: walkExercisesDone.map(function (e) { return e.id; }),
+      });
       if (more.exercises.length) {
         exercises = exercises.concat(more.exercises);
       } else {
@@ -175,11 +179,12 @@
           return '<button class="timer-circle" id="timer" type="button">Tippe, wenn du denkst,<br>die Zeit ist um</button>';
         }
         return '<div class="timer-circle" id="timer">' + ex.seconds + '<small>Sekunden</small></div>';
-      case 'photo':
+      case 'photo': {
+        var photoTarget = ex.target || 1;
         return '<div class="photo-grid" id="photos"></div>' +
-               '<p class="counter__hint" id="photo-count">0 / ' + ex.target + '</p>' +
-               '<button class="btn btn-sm" id="photo-add" type="button">Foto aufnehmen</button>' +
-               '<input class="visually-hidden" id="photo-input" type="file" accept="image/*" capture="environment">';
+          '<p class="counter__hint" id="photo-count">0 / ' + photoTarget + '</p>' +
+          '<button class="btn btn-sm" id="photo-add" type="button">Foto aufnehmen</button>';
+      }
       case 'tour':
         return '<div class="counter__hint" id="tour-stage"></div>' +
                '<div class="exercise__title text-center" id="tour-label" style="margin:0"></div>' +
@@ -325,21 +330,34 @@
   var timerStops = [];
 
   function wirePhoto(ex) {
-    var grid = $('photos'), countEl = $('photo-count'), input = $('photo-input');
+    var photoTarget = ex.target || 1;
+    var grid    = $('photos');
+    var countEl = $('photo-count');
     var n = 0;
-    for (var i = 0; i < ex.target; i++) {
+
+    for (var i = 0; i < photoTarget; i++) {
       var slot = document.createElement('div'); slot.className = 'photo-thumb'; grid.appendChild(slot);
     }
-    $('photo-add').addEventListener('click', function () { input.click(); });
-    input.addEventListener('change', function () {
-      if (!input.files || !input.files[0]) return;
-      if (n >= ex.target) return;
-      var url = URL.createObjectURL(input.files[0]);
-      var img = document.createElement('img'); img.src = url; img.alt = 'Foto ' + (n + 1);
-      grid.children[n].appendChild(img);
-      n += 1;
-      countEl.textContent = n + ' / ' + ex.target;
-      input.value = '';
+
+    $('photo-add').addEventListener('click', function () {
+      WW.openCamera({
+        multi:  photoTarget > 1,
+        count:  n,
+        target: photoTarget,
+        onCapture: function (blob) {
+          return WW.photoStore.savePhoto({ exerciseId: ex.id, world: ex.world, blob: blob })
+            .then(function (entry) {
+              if (n < grid.children.length) {
+                var img = document.createElement('img');
+                img.src = entry.thumbDataUrl || URL.createObjectURL(blob);
+                img.alt = 'Foto ' + (n + 1);
+                grid.children[n].appendChild(img);
+              }
+              n += 1;
+              countEl.textContent = n + ' / ' + photoTarget;
+            });
+        },
+      });
     });
   }
 

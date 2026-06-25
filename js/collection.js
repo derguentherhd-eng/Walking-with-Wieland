@@ -68,6 +68,42 @@
     if (offset > 0) { offset -= 1; renderShelf(); }
   });
 
+  /* Fotoleine: letzte 5 Fotos aus Welt-5-Übungen als Polaroids anzeigen.
+     Nur die einzelnen Slots sind klickbar, kein Screen-weiter Overlay. */
+  function renderRope() {
+    if (!WW.photoStore) return;
+    WW.photoStore.getPhotosByWorld(5).then(function (allPhotos) {
+      var sorted = allPhotos.slice().sort(function (a, b) {
+        var d = b.date.localeCompare(a.date);
+        return d !== 0 ? d : (b.id > a.id ? 1 : -1);
+      });
+      var recent = sorted.slice(0, 5);
+
+      document.querySelectorAll('.polaroid-slot').forEach(function (slot, i) {
+        var photo = recent[i];
+        if (!photo || !photo.thumbDataUrl) return;
+
+        var frame = document.createElement('div');
+        frame.className = 'polaroid-frame';
+        var img = document.createElement('img');
+        img.className = 'polaroid-photo';
+        img.alt = 'Foto ' + (i + 1);
+        img.src = photo.thumbDataUrl;
+        frame.appendChild(img);
+        slot.appendChild(frame);
+        slot.classList.add('has-photo');
+
+        if (WW.openWorldGallery) {
+          slot.addEventListener('click', function () { WW.openWorldGallery(); });
+          slot.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); WW.openWorldGallery(); }
+          });
+        }
+      });
+    }).catch(function () {});
+  }
+
   renderShelf();
+  renderRope();
   WW.mountNav('collection');
 })();

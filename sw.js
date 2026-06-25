@@ -3,7 +3,7 @@
    werden absichtlich NICHT gecacht und laufen direkt übers Netz. */
 'use strict';
 
-var CACHE = 'ww-shell-v3';
+var CACHE = 'ww-shell-v4';
 var SHELL = [
   './',
   'index.html',
@@ -16,6 +16,9 @@ var SHELL = [
   'js/exercises.js',
   'js/trophies.js',
   'js/app.js',
+  'js/photoStore.js',
+  'js/camera.js',
+  'js/route.js',
   'js/home.js',
   'js/checkin.js',
   'js/walk.js',
