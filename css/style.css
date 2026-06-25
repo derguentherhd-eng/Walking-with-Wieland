@@ -790,10 +790,9 @@ input[type="range"].range::-moz-range-track {
 .position-layer {
   position: fixed;
   left: 0;
+  top: 0;
   width: 100%;
   aspect-ratio: 259.2 / 460.8;
-  top: 50%;
-  transform: translateY(-50%);
   z-index: 1;
   pointer-events: none;
 }
