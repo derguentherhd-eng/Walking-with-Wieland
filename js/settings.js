@@ -69,6 +69,10 @@
   function renderTest() { $('test-mode').checked = !!WW.getSettings().testMode; }
   $('test-mode').addEventListener('change', function () { WW.setTestMode(this.checked); });
 
+  /* ---------- Debug-Übungsauslöser ---------- */
+  function renderDebugEx() { $('debug-ex-mode').checked = !!WW.getSettings().debugExMode; }
+  $('debug-ex-mode').addEventListener('change', function () { WW.setDebugExMode(this.checked); });
+
   /* ---------- Fortschritt zurücksetzen ---------- */
   $('reset-progress').addEventListener('click', function () {
     var ok = window.confirm('Wirklich alle Spaziergänge, Schätze und Erfolge zurücksetzen?');
@@ -77,7 +81,7 @@
     var st = $('reset-status');
     st.hidden = false;
     st.textContent = 'Fortschritt wurde zurückgesetzt.';
-    renderHome(); renderKey(); renderGoal(); renderTest();
+    renderHome(); renderKey(); renderGoal(); renderTest(); renderDebugEx();
   });
 
   /* ---------- kleines visuelles Feedback ---------- */
@@ -93,5 +97,6 @@
   renderKey();
   renderGoal();
   renderTest();
+  renderDebugEx();
   WW.mountNav('settings');
 })();

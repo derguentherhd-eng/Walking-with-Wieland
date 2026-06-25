@@ -157,7 +157,7 @@
     switch (ex.type) {
       case 'breath':
         return '<div class="breath-phase" id="breath-phase">Bereit?</div>' +
-               '<div class="breath-circle" id="breath-circle"></div>' +
+               '<div class="breath-wrap"><div class="breath-circle" id="breath-circle"></div></div>' +
                '<p class="counter__hint" id="breath-hint"></p>';
       case 'counter':
         return '<div class="counter" id="count">0</div>' +
@@ -167,7 +167,7 @@
         return '<div id="gc-phase1" class="stack" style="align-items:center">' +
                  '<label class="counter__hint" for="gc-guess">Deine Schätzung</label>' +
                  '<input class="input" id="gc-guess" type="number" inputmode="numeric" min="0" style="max-width:160px;text-align:center">' +
-                 '<button class="btn btn-sm" id="gc-go" type="button">Los, zählen!</button>' +
+                 '<button class="btn btn--brett btn-sm" id="gc-go" type="button">Los, zählen!</button>' +
                '</div>' +
                '<div id="gc-phase2" hidden class="center-col">' +
                  '<div class="counter" id="count">0</div>' +
@@ -183,7 +183,7 @@
         var photoTarget = ex.target || 1;
         return '<div class="photo-grid" id="photos"></div>' +
           '<p class="counter__hint" id="photo-count">0 / ' + photoTarget + '</p>' +
-          '<button class="btn btn-sm" id="photo-add" type="button">Foto aufnehmen</button>';
+          '<button class="btn btn--brett btn-sm" id="photo-add" type="button">Foto aufnehmen</button>';
       }
       case 'tour':
         return '<div class="counter__hint" id="tour-stage"></div>' +
@@ -202,24 +202,32 @@
     var wt = $('walk-top');
     navWasVisible = !wt.hidden;
     wt.hidden = true;
-    $('walk-center').hidden = true;     // Walk-Inhalt vollständig ausblenden
+    $('walk-center').hidden = true;
+    $('end-walk').hidden = true;
+    $('debug-ex').hidden = true;
+    var wielandSrc = ex.world === 5
+      ? 'assets/Wieland%20Entdeckerblick.apng'
+      : 'assets/wieland-sitzen.apng';
     var layer = $('exercise-layer');
     layer.innerHTML =
-      '<div class="exercise">' +
-        '<div class="exercise__head">' +
-          '<p class="exercise__eyebrow">' + WW.esc(ex.header) + '</p>' +
-          '<div class="row" style="align-items:flex-start;gap:8px">' +
-            '<h1 class="exercise__title" id="ex-title">' + WW.esc(ex.text) + '</h1>' +
-            '<button class="icon-btn" id="speak" type="button" aria-label="Vorlesen" aria-pressed="false"></button>' +
-          '</div>' +
+      '<div class="ex-text-box">' +
+        '<p class="exercise__eyebrow">' + WW.esc(ex.header) + '</p>' +
+        '<div style="display:flex;align-items:flex-start;gap:8px">' +
+          '<h1 class="exercise__title" id="ex-title">' + WW.esc(ex.text) + '</h1>' +
+          '<button class="icon-btn" id="speak" type="button" aria-label="Vorlesen" aria-pressed="false"></button>' +
         '</div>' +
-        '<img class="wieland wieland--sit" src="assets/wieland-sitzen.apng" alt="Wieland sitzt">' +
-        '<div class="exercise__body" id="ex-body">' + bodyForType(ex) + '</div>' +
-        actionsHTML() +
-      '</div>';
+      '</div>' +
+      '<div class="exercise__body" id="ex-body">' + bodyForType(ex) + '</div>' +
+      '<div class="ex-bottom">' +
+        '<img class="wieland wieland--sit wieland--bob" src="' + wielandSrc + '" alt="Wieland">' +
+        '<div class="ex-bottom__actions">' +
+          '<button class="btn btn--brett btn-sm" data-act="reroll" type="button">Andere Übung</button>' +
+          '<button class="btn btn--brett btn-sm" data-act="skip" type="button">Überspringen</button>' +
+        '</div>' +
+      '</div>' +
+      '<button class="btn btn--brett ex-done-btn" data-act="done" type="button">Geschafft</button>';
     layer.hidden = false;
     $('speak').innerHTML = WW.icon('mic');
-
     wireCommonActions(ex);
     wireType(ex);
   }
@@ -232,7 +240,9 @@
     if (advance) idx += 1;
     movedSinceLast = 0;
     mode = 'walking';
-    $('walk-center').hidden = false;    // Walk-Inhalt wieder einblenden
+    $('walk-center').hidden = false;
+    $('end-walk').hidden = false;
+    $('debug-ex').hidden = !WW.getSettings().debugExMode;
     if (navWasVisible) $('walk-top').hidden = false;
     navWasVisible = false;
   }
@@ -463,8 +473,18 @@
     }).join('');
     $('done-modal').hidden = false;
   }
-  $('end-walk').addEventListener('click', endWalk);
+  $('end-walk').addEventListener('click', function () {
+    $('end-confirm').hidden = false;
+  });
+  $('confirm-keep').addEventListener('click', function () {
+    $('end-confirm').hidden = true;
+  });
+  $('confirm-end').addEventListener('click', function () {
+    $('end-confirm').hidden = true;
+    endWalk();
+  });
 
+  $('debug-ex').hidden = !WW.getSettings().debugExMode;
   $('debug-ex').addEventListener('click', function () {
     if (mode === 'done' || mode === 'exercise') return;
     // 1. Nächste geplante Übung
@@ -925,7 +945,7 @@
   $('map-close').addEventListener('click', function () { $('map-panel').hidden = true; });
 
   /* ---------- Start ---------- */
-  $('sos').innerHTML = 'Notruf';
+  if ($('sos')) $('sos').innerHTML = 'Notruf';
   requestNotifPermission();
   initDeviceOrientation();
   // iOS sperrt Audio bis zur ersten Nutzer-Interaktion — beim ersten Touch entsperren

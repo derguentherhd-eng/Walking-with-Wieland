@@ -3,7 +3,7 @@
    werden absichtlich NICHT gecacht und laufen direkt übers Netz. */
 'use strict';
 
-var CACHE = 'ww-shell-v4';
+var CACHE = 'ww-shell-v5';
 var SHELL = [
   './',
   'index.html',
@@ -32,7 +32,15 @@ var SHELL = [
   'assets/icon-192.png',
   'assets/icon-512.png',
   'assets/Audio%20Waypoint.mp3',
-  'assets/Audio%20%C3%9Cbung.mp3'
+  'assets/Audio%20%C3%9Cbung.mp3',
+  'assets/Brett.png',
+  'assets/Hintergrundhoele.png',
+  'assets/Positionen.svg',
+  'assets/Wieland%20Entdeckerblick.apng',
+  'assets/Icons/Start.svg',
+  'assets/Icons/Hoehle.svg',
+  'assets/Icons/Statistik.svg',
+  'assets/Icons/Mehr.svg'
 ];
 
 self.addEventListener('install', function (e) {

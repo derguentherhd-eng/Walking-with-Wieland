@@ -11,13 +11,13 @@
   <meta name="apple-mobile-web-app-title" content="Wieland">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="css/style.css?v=20">
+  <link rel="stylesheet" href="css/style.css?v=33">
   <!-- Leaflet (nur für die geführte Strecke; lädt im Browser, OpenStreetMap-Karten) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 </head>
 <body>
-  <div class="bg" aria-hidden="true"></div>
+  <div class="bg bg--walk" aria-hidden="true"></div>
 
   <main class="screen screen--walk" id="walk-main">
 
@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div class="spacer"></div>
+    <div class="spacer walk-spacer-top"></div>
 
     <div class="center-col walk-center" id="walk-center">
       <p class="overlay-text text-center" id="walk-hint">Leg dein Handy weg…</p>
@@ -47,14 +47,18 @@
       <img class="wieland wieland--walk" src="assets/wieland-laufen.apng" alt="Wieland läuft neben dir">
     </div>
 
-    <div class="spacer"></div>
-
-    <div class="walkbar">
-      <a class="walkbar__sos" id="sos" href="tel:112">Notruf</a>
-      <button class="btn btn-sm btn-ghost" id="debug-ex" type="button" title="Debug: Übung auslösen">⚡</button>
-      <button class="btn btn-light btn-sm" id="end-walk" type="button">Beenden</button>
-    </div>
+    <div class="spacer walk-spacer-bot"></div>
   </main>
+
+  <button class="btn btn--brett walk-debug-btn" id="debug-ex" type="button" hidden>⚡ Übung</button>
+  <button class="btn btn--brett walk-end-btn" id="end-walk" type="button">Beenden</button>
+
+  <!-- Beenden-Bestätigung -->
+  <div class="end-confirm" id="end-confirm" hidden>
+    <p class="end-confirm__text">Willst du wirklich den<br>Spaziergang beenden?</p>
+    <button class="btn btn--brett end-confirm__continue" id="confirm-keep" type="button">Weiterlaufen</button>
+    <button class="btn btn--brett end-confirm__end" id="confirm-end" type="button">Beenden</button>
+  </div>
 
   <!-- Übungs-Overlay (Inhalt per JS) -->
   <div class="exercise-layer" id="exercise-layer" hidden></div>
@@ -94,10 +98,10 @@
 
   <script src="js/exercises.js?v=10"></script>
   <script src="js/trophies.js?v=10"></script>
-  <script src="js/app.js?v=15"></script>
+  <script src="js/app.js?v=17"></script>
   <script src="js/photoStore.js?v=1"></script>
   <script src="js/camera.js?v=1"></script>
   <script src="js/route.js?v=1"></script>
-  <script src="js/walk.js?v=24"></script>
+  <script src="js/walk.js?v=30"></script>
 </body>
 </html>

@@ -67,7 +67,7 @@
   /* ---------- Zustand / Persistenz ---------- */
   function defaultState() {
     return {
-      settings: { home: null, orsKey: '', weeklyGoal: 4, testMode: false },
+      settings: { home: null, orsKey: '', weeklyGoal: 4, testMode: false, debugExMode: false },
       days: {},                 // ISO-Datum -> 'guided' | 'free'
       history: {},              // Übungs-id -> sessionIndex des letzten Mals
       sessionIndex: 0,
@@ -354,6 +354,7 @@
   function setOrsKey(k) { state.settings.orsKey = k || ''; save(); }
   function setWeeklyGoal(n) { state.settings.weeklyGoal = clamp(parseInt(n, 10) || 4, 1, 14); save(); }
   function setTestMode(on) { state.settings.testMode = !!on; save(); }
+  function setDebugExMode(on) { state.settings.debugExMode = !!on; save(); }
   function resetProgress() { state = defaultState(); save(); }
 
   /* ---------- SVG-Icons (stroke = currentColor) ---------- */
@@ -385,16 +386,16 @@
   /* ---------- untere Navigation ---------- */
   function navHTML(active) {
     var items = [
-      { href: 'collection.html', label: 'Höhle', icon: 'hoehle', key: 'collection' },
-      { href: 'stats.html', label: 'Statistik', icon: 'buch', key: 'stats' },
-      { href: 'index.html', label: 'Start', icon: 'home', key: 'home' },
-      { href: 'settings.html', label: 'Mehr', icon: 'settings', key: 'settings' }
+      { href: 'index.html',      label: 'Start',     icon: 'Start',     key: 'home' },
+      { href: 'collection.html', label: 'Höhle',     icon: 'Hoehle',    key: 'collection' },
+      { href: 'stats.html',      label: 'Statistik', icon: 'Statistik', key: 'stats' },
+      { href: 'settings.html',   label: 'Mehr',      icon: 'Mehr',      key: 'settings' }
     ];
     return '<nav class="nav" aria-label="Hauptnavigation">' + items.map(function (it) {
       var on = it.key === active;
       return '<a class="nav-item' + (on ? ' is-active' : '') + '" href="' + it.href + '"' +
         (on ? ' aria-current="page"' : '') + '>' +
-        '<span class="nav-ico">' + icon(it.icon) + '</span>' +
+        '<img class="nav-ico" src="assets/Icons/' + it.icon + '.svg" alt="" aria-hidden="true">' +
         '<span class="nav-label">' + it.label + '</span></a>';
     }).join('') + '</nav>';
   }
@@ -419,7 +420,7 @@
     distanceKm: distanceKm, estimateMinutes: estimateMinutes, haversine: haversine,
     // Einstellungen
     getState: getState, getSettings: getSettings, setHome: setHome, clearHome: clearHome,
-    setOrsKey: setOrsKey, setWeeklyGoal: setWeeklyGoal, setTestMode: setTestMode, resetProgress: resetProgress,
+    setOrsKey: setOrsKey, setWeeklyGoal: setWeeklyGoal, setTestMode: setTestMode, setDebugExMode: setDebugExMode, resetProgress: resetProgress,
     // Daten-Helfer
     exerciseById: exerciseById, worldExercises: worldExercises,
     // UI-Helfer

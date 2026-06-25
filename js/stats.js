@@ -69,6 +69,11 @@
       var btn = e.target.closest('.cell--btn');
       if (btn) showDayDetail(btn.dataset.date);
     });
+    /* Aktuellste Woche (unten) direkt sichtbar machen */
+    requestAnimationFrame(function () {
+      var scroll = $('stat-scroll');
+      if (scroll) scroll.scrollTop = scroll.scrollHeight;
+    });
   }
 
   /* ---------- Tages-Detail ---------- */
